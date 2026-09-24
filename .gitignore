@@ -1,0 +1,38 @@
+# Node modules & build
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Environnement local & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+fumi_checkpoints/
+fumi-7b-v1/
+wandb/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS Files
+.DS_Store
+*.pem
+Thumbs.db

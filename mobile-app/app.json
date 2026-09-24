@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "FUMI AI",
+    "slug": "fumi-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/fumi_avatar_square.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/fumi_avatar.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0d0b"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.azavatech.fumi"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/fumi_avatar_square.png",
+        "backgroundColor": "#0f0d0b"
+      },
+      "package": "com.azavatech.fumi"
+    }
+  }
+}

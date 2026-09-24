@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme {
+  --color-brand-50: #fcfaf5;
+  --color-brand-100: #f8f4e6;
+  --color-brand-200: #f0e6cb;
+  --color-brand-300: #e5cf9e;
+  --color-brand-400: #dab372;
+  --color-brand-500: #d1984b;
+  --color-brand-600: #c27e3c;
+  --color-brand-700: #a26131;
+  --color-brand-800: #834d2e;
+  --color-brand-900: #6b4028;
+  --color-brand-950: #3a1e12;
+
+  --animate-fadeIn: fadeIn 0.4s ease-out forwards;
+  --animate-slideUp: slideUp 0.4s ease-out forwards;
+  
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    0% { transform: translateY(16px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+}
+
+:root {
+  --background: #0f0d0b;
+  --foreground: #fcfaf5;
+}
+
+html, body {
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Zero horizontal overflow & mobile safe area */
+body {
+  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(209, 152, 75, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(209, 152, 75, 0.5);
+}

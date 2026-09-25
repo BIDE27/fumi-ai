@@ -22,6 +22,7 @@ import * as Speech from 'expo-speech';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { askFumiMobile } from '../services/fumiApi';
+import { getFumiGreeting, getFumiProactiveCards, FumiProactiveCard } from '../lib/fumiGreetings';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -50,44 +51,6 @@ interface ChatSession {
 const STORAGE_SESSIONS_KEY = '@fumi_mobile_sessions_v2';
 const STORAGE_ACTIVE_ID_KEY = '@fumi_mobile_active_id';
 
-const PROACTIVE_SUGGESTIONS = [
-  {
-    id: 'fezan',
-    badge: 'Sagesse & Traditions',
-    badgeIcon: '👑',
-    title: 'Énergies cosmiques du jour selon le Fêzan',
-    prompt: 'Quelles sont les énergies cosmiques du jour selon le calendrier traditionnel Fêzan ? Donne-moi les conseils d\'action et de vigilance.',
-  },
-  {
-    id: 'code',
-    badge: 'Code & Ingénierie',
-    badgeIcon: '💻',
-    title: 'Architecture logicielle & Résolution de bugs',
-    prompt: 'Agis comme un ingénieur principal expert en TypeScript, Next.js et React Native. Écris une fonction robuste et sécurisée.',
-  },
-  {
-    id: 'fa',
-    badge: '16 Signes Mères',
-    badgeIcon: '📜',
-    title: 'Matrices sacrées du Fâ & Leurs attributs',
-    prompt: 'Explique-moi les 16 signes mères du Fâ (Gbê-Mêdji, Yèkou-Mêdji...) avec leurs tracés binaires et leurs leçons de vie.',
-  },
-  {
-    id: 'sciences',
-    badge: 'Sciences Africaines',
-    badgeIcon: '🧪',
-    title: 'Pharmacopée & Ethnobotanique',
-    prompt: 'Présente-moi les plantes médicinales majeures du golfe de Guinée et leurs vertus selon la pharmacopée traditionnelle.',
-  },
-  {
-    id: 'protection',
-    badge: 'Harmonie & Sérénité',
-    badgeIcon: '🛡️',
-    title: 'Purification & Alignement énergétique',
-    prompt: 'Quels sont les principes traditionnels de purification et d\'harmonie de l\'esprit pour surmonter le stress et les doutes ?',
-  }
-];
-
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -95,6 +58,7 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [chatMode, setChatMode] = useState<'adaptive' | 'fast' | 'thinking'>('adaptive');
+  const [isModeModalOpen, setIsModeModalOpen] = useState(false);
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
@@ -146,6 +110,15 @@ export default function ChatScreen() {
   }, [sessions, currentSessionId]);
 
   const messages = currentSession?.messages || [];
+
+  // Salutation dynamique & Cartes proactives officielles identiques au Web
+  const greeting = useMemo(() => {
+    return getFumiGreeting('Initié', currentSessionId);
+  }, [currentSessionId]);
+
+  const proactiveCards = useMemo(() => {
+    return getFumiProactiveCards();
+  }, []);
 
   const initNewSession = () => {
     const newId = `mob_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -349,6 +322,9 @@ export default function ChatScreen() {
     );
   }, [sessions, searchFilter]);
 
+  const modeDisplayLabel = chatMode === 'thinking' ? 'Réfléchir' : chatMode === 'fast' ? 'Rapide' : 'Adaptatif';
+  const modeDisplayIcon = chatMode === 'thinking' ? '🧠' : chatMode === 'fast' ? '⚡' : '✨';
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#fcfaf5" />
@@ -356,24 +332,28 @@ export default function ChatScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* ================= EN-TÊTE SUPÉRIEUR EXACT STYLE FA_VODOUN_CONNECT ================= */}
+        {/* ================= EN-TÊTE SUPÉRIEUR EXACT AU PIXEL DU WEB ================= */}
         <View style={styles.header}>
-          {/* Bouton Hamburger pour ouvrir le Drawer d'historique */}
+          {/* Bouton Hamburger */}
           <TouchableOpacity
-            style={styles.iconButton}
+            style={styles.headerButton}
             onPress={() => setIsDrawerOpen(true)}
-            accessibilityLabel="Historique des discussions"
+            accessibilityLabel="Ouvrir le menu"
           >
-            <Text style={styles.hamburgerText}>☰</Text>
+            <Text style={styles.headerIconText}>☰</Text>
           </TouchableOpacity>
 
-          {/* Logo officiel & Badge IA */}
+          {/* Logo officiel : Avatar + Lettre + Badge IA (exactement comme le Web) */}
           <View style={styles.headerCenter}>
             <Image
               source={require('../../assets/fumi_avatar.png')}
               style={styles.headerAvatar}
             />
-            <Text style={styles.headerTitle}>FUMI AI</Text>
+            <Image
+              source={require('../../assets/fumi_lettre.png')}
+              style={styles.headerLettre}
+              resizeMode="contain"
+            />
             <View style={styles.iaBadge}>
               <Text style={styles.iaBadgeText}>IA</Text>
             </View>
@@ -381,41 +361,11 @@ export default function ChatScreen() {
 
           {/* Bouton Nouveau Chat (+) */}
           <TouchableOpacity
-            style={styles.iconButton}
+            style={styles.headerButton}
             onPress={initNewSession}
             accessibilityLabel="Nouvelle discussion"
           >
-            <Text style={styles.plusIconText}>✏️</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ================= SÉLECTEUR DE MODE DE RÉPONSE ================= */}
-        <View style={styles.modeBarContainer}>
-          <TouchableOpacity
-            onPress={() => setChatMode('adaptive')}
-            style={[styles.modeTab, chatMode === 'adaptive' && styles.modeTabActive]}
-          >
-            <Text style={[styles.modeTabText, chatMode === 'adaptive' && styles.modeTabTextActive]}>
-              ✨ Adaptatif
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setChatMode('fast')}
-            style={[styles.modeTab, chatMode === 'fast' && styles.modeTabActive]}
-          >
-            <Text style={[styles.modeTabText, chatMode === 'fast' && styles.modeTabTextActive]}>
-              ⚡ Rapide
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setChatMode('thinking')}
-            style={[styles.modeTab, chatMode === 'thinking' && styles.modeTabActive]}
-          >
-            <Text style={[styles.modeTabText, chatMode === 'thinking' && styles.modeTabTextActive]}>
-              🧠 Réfléchir
-            </Text>
+            <Text style={styles.headerIconText}>＋</Text>
           </TouchableOpacity>
         </View>
 
@@ -425,52 +375,64 @@ export default function ChatScreen() {
             contentContainerStyle={styles.welcomeScrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Avatar Central & Mascotte */}
-            <View style={styles.welcomeAvatarWrapper}>
+            {/* Avatar & Lettre Fumi centrés */}
+            <View style={styles.welcomeMascotteContainer}>
               <Image
                 source={require('../../assets/fumi_avatar.png')}
                 style={styles.welcomeAvatar}
               />
+              <Image
+                source={require('../../assets/fumi_lettre.png')}
+                style={styles.welcomeLettre}
+                resizeMode="contain"
+              />
             </View>
 
-            {/* Titre & Sous-titre spirituels et technologiques */}
-            <Text style={styles.welcomeHeadline}>Kú dɔ̀ zànzǎn !</Text>
-            <Text style={styles.welcomeSubline}>
-              Je suis FUMI, l'IA souveraine africaine. Je réponds à vos questions de code, de sciences et de traditions avec sagesse.
-            </Text>
+            {/* Titre & Sous-titre avec Google Fonts officielles (Merriweather & Inter) */}
+            <Text style={styles.welcomeHeadline}>{greeting.headline}</Text>
+            <Text style={styles.welcomeSubline}>{greeting.subline}</Text>
 
-            {/* CARROUSEL DES SUGGESTIONS PROACTIVES */}
+            {/* CARROUSEL DES SUGGESTIONS PROACTIVES (Exactement les mêmes cartes qu'en Web) */}
             <View style={styles.carouselHeader}>
               <Text style={styles.carouselHeaderText}>
-                ✨ SUGGESTIONS PROACTIVES & SECRETS DU FÂ
+                ✨ SUGGESTIONS PROACTIVES & SECRETS...
               </Text>
-              <Text style={styles.carouselHeaderHint}>Glisser →</Text>
+              <Text style={styles.carouselHeaderHint}>Faites défiler →</Text>
             </View>
 
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.carouselContainer}
-              snapToInterval={280}
+              snapToInterval={284}
               decelerationRate="fast"
             >
-              {PROACTIVE_SUGGESTIONS.map((card) => (
-                <View key={card.id} style={styles.suggestionCard}>
-                  <View style={styles.suggestionBadge}>
-                    <Text style={styles.suggestionBadgeText}>
-                      {card.badgeIcon} {card.badge}
+              {proactiveCards.map((card: FumiProactiveCard) => {
+                const iconSymbol = card.badgeIcon === 'crown' ? '👑' : card.badgeIcon === 'book' ? '📚' : card.badgeIcon === 'compass' ? '🧭' : card.badgeIcon === 'shield' ? '🛡️' : '✨';
+                const actionText = card.actionType === 'prompt' && card.promptQuery
+                  ? card.actionLabel
+                  : (card.badge.includes('FÊZAN') ? '↗ Interroger le Fâ' : card.badge.includes('ROYAL') ? '💬 Raconter le secret' : card.actionLabel || 'Poser la question ➔');
+
+                return (
+                  <View key={card.id} style={styles.suggestionCard}>
+                    <View style={styles.suggestionBadge}>
+                      <Text style={styles.suggestionBadgeText}>
+                        {iconSymbol} {card.badge}
+                      </Text>
+                    </View>
+                    <Text style={styles.suggestionTitle} numberOfLines={2}>
+                      {card.title}
                     </Text>
+                    <TouchableOpacity
+                      style={styles.suggestionButton}
+                      onPress={() => sendMessage(card.promptQuery || card.title)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.suggestionButtonText}>{actionText}</Text>
+                    </TouchableOpacity>
                   </View>
-                  <Text style={styles.suggestionTitle}>{card.title}</Text>
-                  <TouchableOpacity
-                    style={styles.suggestionButton}
-                    onPress={() => sendMessage(card.prompt)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.suggestionButtonText}>Poser la question ➔</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                );
+              })}
             </ScrollView>
           </ScrollView>
         ) : (
@@ -519,7 +481,7 @@ export default function ChatScreen() {
                       {item.content}
                     </Text>
 
-                    {/* Barre d'action sur message IA : Copier & Écouter */}
+                    {/* Barre d'action sur message IA */}
                     {!isUser && (
                       <View style={styles.aiActionRow}>
                         <TouchableOpacity
@@ -551,17 +513,21 @@ export default function ChatScreen() {
         {/* Indicateur de chargement */}
         {loading && (
           <View style={styles.thinkingContainer}>
-            <ActivityIndicator size="small" color="#6b4028" />
+            <Image
+              source={require('../../assets/fumi_avatar.png')}
+              style={styles.thinkingAvatar}
+            />
+            <ActivityIndicator size="small" color="#543719" />
             <Text style={styles.thinkingText}>
-              {chatMode === 'thinking' ? 'FUMI réfléchit avec sagesse...' : 'FUMI prépare votre réponse...'}
+              {chatMode === 'thinking' ? 'Fumi réfléchit avec sagesse...' : 'Fumi prépare votre réponse...'}
             </Text>
           </View>
         )}
 
-        {/* ================= BARRE DE SAISIE CAPSULE UNIFIÉE ================= */}
-        <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        {/* ================= CAPSULE DE SAISIE UNIFIÉE EXACTE AU PIXEL DU WEB ================= */}
+        <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View style={styles.inputCapsule}>
-            {/* Prévisualisation des photos attachées */}
+            {/* Photos attachées */}
             {attachedImages.length > 0 && (
               <ScrollView horizontal style={styles.attachedImagesBar} showsHorizontalScrollIndicator={false}>
                 {attachedImages.map((img) => (
@@ -578,7 +544,7 @@ export default function ChatScreen() {
               </ScrollView>
             )}
 
-            {/* Champ de texte multiline */}
+            {/* Champ de saisie fluide */}
             <TextInput
               style={styles.textInput}
               value={input}
@@ -588,34 +554,55 @@ export default function ChatScreen() {
                   ? `Poser une question sur ces ${attachedImages.length} photo(s)...`
                   : "Demander à Fumi..."
               }
-              placeholderTextColor="#998e82"
+              placeholderTextColor="#9e9486"
               multiline
             />
 
-            {/* Ligne d'actions inférieure */}
-            <View style={styles.inputActionRow}>
+            {/* Barre inférieure dans la capsule : [+] à gauche, [Mode ▾] et [Mic/Envoyer] à droite */}
+            <View style={styles.capsuleBottomRow}>
               {/* Bouton + pour joindre des photos */}
               <TouchableOpacity
-                style={styles.attachButton}
+                style={styles.plusButton}
                 onPress={handlePickImages}
                 disabled={attachedImages.length >= 5}
-                accessibilityLabel="Joindre une photo"
+                accessibilityLabel="Ajouter des photos"
               >
-                <Text style={styles.attachButtonText}>＋</Text>
+                <Text style={styles.plusButtonText}>＋</Text>
               </TouchableOpacity>
 
-              {/* Bouton d'envoi rond */}
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  (!input.trim() && attachedImages.length === 0) || loading ? styles.sendButtonDisabled : null
-                ]}
-                onPress={() => sendMessage()}
-                disabled={(!input.trim() && attachedImages.length === 0) || loading}
-                accessibilityLabel="Envoyer"
-              >
-                <Text style={styles.sendButtonIcon}>↑</Text>
-              </TouchableOpacity>
+              {/* Bloc droit : Sélecteur de mode déroulant + Action */}
+              <View style={styles.capsuleRightActions}>
+                {/* Pilule Sélecteur de mode */}
+                <TouchableOpacity
+                  style={styles.modeDropdownPill}
+                  onPress={() => setIsModeModalOpen(true)}
+                  accessibilityLabel="Changer le mode de réponse"
+                >
+                  <Text style={styles.modeDropdownText}>
+                    {modeDisplayIcon} {modeDisplayLabel} ▾
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Bouton Envoyer ou Micro */}
+                {(input.trim() || attachedImages.length > 0) ? (
+                  <TouchableOpacity
+                    style={styles.sendCircleButton}
+                    onPress={() => sendMessage()}
+                    disabled={loading}
+                    accessibilityLabel="Envoyer"
+                  >
+                    <Text style={styles.sendCircleIcon}>↑</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.micCircleButton}
+                    onPress={() => Alert.alert("Entrée vocale", "Dictez votre question ou tapez directement dans le champ.")}
+                    accessibilityLabel="Micro"
+                  >
+                    <Text style={styles.micCircleIcon}>🎙️</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
 
@@ -623,6 +610,69 @@ export default function ChatScreen() {
             Fumi est une IA et peut se tromper
           </Text>
         </View>
+
+        {/* ================= MODAL SÉLECTION DE MODE DE RÉPONSE ================= */}
+        <Modal
+          visible={isModeModalOpen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsModeModalOpen(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsModeModalOpen(false)}
+          >
+            <View style={styles.modeModalContent}>
+              <Text style={styles.modeModalTitle}>MODE DE RÉPONSE</Text>
+
+              {/* Adaptatif */}
+              <TouchableOpacity
+                style={[styles.modeModalOption, chatMode === 'adaptive' && styles.modeModalOptionActive]}
+                onPress={() => {
+                  setChatMode('adaptive');
+                  setIsModeModalOpen(false);
+                }}
+              >
+                <Text style={styles.modeModalOptionIcon}>✨</Text>
+                <View style={styles.modeModalOptionTextCol}>
+                  <Text style={styles.modeModalOptionName}>Adaptatif (Défaut)</Text>
+                  <Text style={styles.modeModalOptionDesc}>S'adapte naturellement selon la complexité de chaque question.</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Rapide */}
+              <TouchableOpacity
+                style={[styles.modeModalOption, chatMode === 'fast' && styles.modeModalOptionActive]}
+                onPress={() => {
+                  setChatMode('fast');
+                  setIsModeModalOpen(false);
+                }}
+              >
+                <Text style={styles.modeModalOptionIcon}>⚡</Text>
+                <View style={styles.modeModalOptionTextCol}>
+                  <Text style={styles.modeModalOptionName}>Rapide</Text>
+                  <Text style={styles.modeModalOptionDesc}>Réponses directes et instantanées pour le quotidien.</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Réfléchir */}
+              <TouchableOpacity
+                style={[styles.modeModalOption, chatMode === 'thinking' && styles.modeModalOptionActive]}
+                onPress={() => {
+                  setChatMode('thinking');
+                  setIsModeModalOpen(false);
+                }}
+              >
+                <Text style={styles.modeModalOptionIcon}>🧠</Text>
+                <View style={styles.modeModalOptionTextCol}>
+                  <Text style={styles.modeModalOptionName}>Réfléchir</Text>
+                  <Text style={styles.modeModalOptionDesc}>Analyse méthodique et raisonnement approfondi pas à pas.</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         {/* ================= MODAL TIROIR D'HISTORIQUE (DRAWER) ================= */}
         <Modal
@@ -647,7 +697,7 @@ export default function ChatScreen() {
                   />
                   <View>
                     <Text style={styles.drawerTitle}>Fumi AI</Text>
-                    <Text style={styles.drawerSubtitle}>Guide & Assistance</Text>
+                    <Text style={styles.drawerSubtitle}>Guide & Assistance H24</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -727,137 +777,103 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fcfaf5',
   },
+
   /* HEADER */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    height: 54,
+    height: 52,
     borderBottomWidth: 1,
     borderBottomColor: '#f0e6cb',
     backgroundColor: '#fcfaf5',
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#f8f4e6',
+    borderWidth: 1,
+    borderColor: '#f0e6cb',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hamburgerText: {
-    fontSize: 20,
+  headerIconText: {
+    fontSize: 18,
     color: '#3a1e12',
     fontWeight: 'bold',
-  },
-  plusIconText: {
-    fontSize: 16,
   },
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   headerAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#3a1e12',
-    letterSpacing: 0.5,
+  headerLettre: {
+    height: 18,
+    width: 55,
   },
   iaBadge: {
-    backgroundColor: '#f0e6cb',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: '#f8f4e6',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#dab372',
   },
   iaBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontSize: 9.5,
+    fontFamily: 'Inter-Bold',
     color: '#6b4028',
   },
 
-  /* SÉLECTEUR DE MODE */
-  modeBarContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#f8f4e6',
-    padding: 3,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#f0e6cb',
-  },
-  modeTab: {
-    flex: 1,
-    paddingVertical: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  modeTabActive: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  modeTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#834d2e',
-  },
-  modeTabTextActive: {
-    color: '#3a1e12',
-    fontWeight: 'bold',
-  },
-
-  /* ÉTAT D'ACCUEIL */
+  /* HERO / WELCOME */
   welcomeScrollContent: {
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 24,
     alignItems: 'center',
   },
-  welcomeAvatarWrapper: {
-    marginTop: 10,
-    marginBottom: 12,
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 2,
-    borderColor: '#d1984b',
-    padding: 2,
-    backgroundColor: '#f8f4e6',
+  welcomeMascotteContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
   welcomeAvatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 36,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  welcomeLettre: {
+    height: 24,
+    width: 75,
+    marginTop: 4,
   },
   welcomeHeadline: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontFamily: 'Merriweather-Bold',
+    fontSize: 21,
     color: '#3a1e12',
-    marginBottom: 6,
     textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 28,
   },
   welcomeSubline: {
+    fontFamily: 'Inter-Regular',
     fontSize: 13,
     color: '#6b4028',
     textAlign: 'center',
     lineHeight: 19,
-    marginBottom: 20,
+    marginTop: 6,
+    marginBottom: 22,
     paddingHorizontal: 16,
   },
+
+  /* CARROUSEL SUGGESTIONS PROACTIVES */
   carouselHeader: {
     width: '100%',
     flexDirection: 'row',
@@ -867,23 +883,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   carouselHeaderText: {
+    fontFamily: 'Inter-Bold',
     fontSize: 10,
-    fontWeight: 'bold',
     color: '#a26131',
     letterSpacing: 0.8,
   },
   carouselHeaderHint: {
+    fontFamily: 'Inter-Medium',
     fontSize: 10,
     color: '#9e9486',
-    fontWeight: '600',
   },
   carouselContainer: {
     paddingRight: 20,
     gap: 12,
   },
   suggestionCard: {
-    width: SCREEN_WIDTH * 0.72,
-    maxWidth: 280,
+    width: SCREEN_WIDTH * 0.74,
+    maxWidth: 290,
     backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 16,
@@ -907,28 +923,30 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   suggestionBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
+    fontSize: 9.5,
     color: '#834d2e',
+    textTransform: 'uppercase',
   },
   suggestionTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontFamily: 'Merriweather-Bold',
+    fontSize: 13.5,
     color: '#292524',
-    lineHeight: 18,
+    lineHeight: 19,
     marginBottom: 14,
   },
   suggestionButton: {
-    backgroundColor: '#6b4028',
-    paddingVertical: 8,
+    backgroundColor: '#543719',
+    paddingVertical: 9,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 13,
     alignItems: 'center',
   },
   suggestionButtonText: {
     color: '#ffffff',
+    fontFamily: 'Inter-Bold',
     fontSize: 11,
-    fontWeight: 'bold',
+    letterSpacing: 0.2,
   },
 
   /* LISTE DES MESSAGES */
@@ -960,7 +978,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   userBubble: {
-    backgroundColor: '#6b4028',
+    backgroundColor: '#543719',
     borderBottomRightRadius: 4,
   },
   aiBubble: {
@@ -976,11 +994,13 @@ const styles = StyleSheet.create({
   },
   userMessageText: {
     color: '#ffffff',
+    fontFamily: 'Inter-Regular',
     fontSize: 15,
     lineHeight: 22,
   },
   aiMessageText: {
     color: '#292524',
+    fontFamily: 'Inter-Regular',
     fontSize: 15,
     lineHeight: 22,
   },
@@ -1010,12 +1030,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f4e6',
   },
   aiActionText: {
+    fontFamily: 'Inter-SemiBold',
     fontSize: 11,
-    fontWeight: '600',
     color: '#834d2e',
   },
 
-  /* CHARGEMENT / RÉFLEXION */
+  /* CHARGEMENT */
   thinkingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1023,28 +1043,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 6,
   },
+  thinkingAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
   thinkingText: {
+    fontFamily: 'Inter-Medium',
     color: '#834d2e',
     fontSize: 12,
-    fontWeight: '600',
   },
 
-  /* BARRE DE SAISIE CAPSULE UNIFIÉE */
+  /* CAPSULE DE SAISIE UNIFIÉE (PIXEL PERFECT WEB) */
   inputWrapper: {
     paddingHorizontal: 16,
     paddingTop: 8,
     backgroundColor: '#fcfaf5',
-    borderTopWidth: 1,
-    borderTopColor: '#f0e6cb',
   },
   inputCapsule: {
     backgroundColor: '#ffffff',
-    borderRadius: 24,
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: '#e5cf9e',
-    padding: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
@@ -1058,8 +1082,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   attachedImageThumb: {
-    width: 54,
-    height: 54,
+    width: 52,
+    height: 52,
     borderRadius: 12,
   },
   attachedImageRemove: {
@@ -1079,53 +1103,140 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   textInput: {
-    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    fontSize: 15.5,
     color: '#292524',
     maxHeight: 120,
     minHeight: 36,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     paddingVertical: 4,
   },
-  inputActionRow: {
+  capsuleBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: 4,
+    paddingTop: 2,
   },
-  attachButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f8f4e6',
+  plusButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  attachButtonText: {
-    fontSize: 20,
+  plusButtonText: {
+    fontSize: 22,
+    color: '#543719',
+    fontWeight: '400',
+    lineHeight: 24,
+  },
+  capsuleRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modeDropdownPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fcfaf5',
+    borderWidth: 1,
+    borderColor: '#e5cf9e',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  modeDropdownText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 11,
     color: '#6b4028',
-    fontWeight: 'bold',
   },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#6b4028',
+  sendCircleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#543719',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendButtonDisabled: {
-    opacity: 0.35,
-  },
-  sendButtonIcon: {
+  sendCircleIcon: {
     color: '#ffffff',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  micCircleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micCircleIcon: {
+    fontSize: 18,
   },
   disclaimerText: {
-    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+    fontSize: 10.5,
     color: '#a89f91',
     textAlign: 'center',
     marginTop: 6,
+  },
+
+  /* MODAL MODE DE RÉPONSE */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  modeModalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modeModalTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 10.5,
+    color: '#a89f91',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  modeModalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 6,
+    backgroundColor: '#fcfaf5',
+  },
+  modeModalOptionActive: {
+    backgroundColor: '#f8f4e6',
+    borderWidth: 1,
+    borderColor: '#dab372',
+  },
+  modeModalOptionIcon: {
+    fontSize: 20,
+  },
+  modeModalOptionTextCol: {
+    flex: 1,
+  },
+  modeModalOptionName: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 13,
+    color: '#3a1e12',
+    marginBottom: 2,
+  },
+  modeModalOptionDesc: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 11,
+    color: '#6b4028',
+    lineHeight: 15,
   },
 
   /* MODAL DRAWER D'HISTORIQUE */
@@ -1165,19 +1276,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   drawerAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   drawerTitle: {
+    fontFamily: 'Inter-Bold',
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#3a1e12',
   },
   drawerSubtitle: {
+    fontFamily: 'Inter-Medium',
     fontSize: 10,
     color: '#834d2e',
-    fontWeight: '600',
   },
   drawerCloseButton: {
     padding: 6,
@@ -1196,8 +1307,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   drawerNewButtonText: {
+    fontFamily: 'Inter-Bold',
     fontSize: 13,
-    fontWeight: 'bold',
     color: '#3a1e12',
     textAlign: 'center',
   },
@@ -1211,6 +1322,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   drawerSearchInput: {
+    fontFamily: 'Inter-Regular',
     fontSize: 13,
     color: '#292524',
     padding: 0,
@@ -1238,11 +1350,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   drawerItemTitle: {
+    fontFamily: 'Inter-Regular',
     fontSize: 13,
     color: '#292524',
   },
   drawerItemTitleActive: {
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     color: '#3a1e12',
   },
   drawerItemDelete: {

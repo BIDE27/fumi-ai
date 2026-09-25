@@ -8,7 +8,6 @@ import {
   Brain, Zap, Maximize2, Key, Volume2, VolumeX, Copy, MessageSquare
 } from 'lucide-react';
 import { ChatThread, AttachedImagePreview } from '@/components/chat/ChatThread';
-import { ChatMobileHeader } from '@/components/chat/ChatMobileHeader';
 import { ChatMessageMarkdown } from '@/components/chat/ChatMessageMarkdown';
 import { ShareModal } from '@/components/chat/ShareModal';
 import { FumiAvatar, FumiLogo, FumiLettre } from '@/components/chat/GeminiStarIcon';
@@ -688,14 +687,6 @@ export default function FumiWebChatPage() {
 
         {/* ZONE DE CONVERSATION PRINCIPALE */}
         <main className="flex-1 flex flex-col min-h-0 bg-white relative overflow-hidden">
-          {/* Header Mobile compact */}
-          <ChatMobileHeader
-            historyOpen={sidebarOpen}
-            onToggleSidebar={() => setSidebarOpen(true)}
-            onNewSession={startNewSession}
-            hasMessages={hasUserMessages}
-            modelName="FUMI AI"
-          />
 
           {/* Bouton de réouverture sidebar PC */}
           {sidebarCollapsed && (

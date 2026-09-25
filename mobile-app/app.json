@@ -18,7 +18,8 @@
       "package": "com.azavatech.fumi"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ]
   }
 }

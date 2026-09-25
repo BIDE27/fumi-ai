@@ -1,5 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const merriweather = Merriweather({
+  variable: "--font-merriweather",
+  weight: ["300", "400", "700", "900"],
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "FUMI AI — L'Intelligence Artificielle Souveraine Africaine & Polyvalente",
@@ -15,7 +29,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#0f0d0b",
+  themeColor: "#fcfaf5",
 };
 
 export default function RootLayout({
@@ -24,8 +38,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className="dark">
-      <body className="antialiased bg-[#0f0d0b] text-[#fcfaf5] min-h-[100dvh]">
+    <html lang="fr" className={`${inter.variable} ${merriweather.variable}`}>
+      <body className="font-sans antialiased bg-[#fcfaf5] text-[#292524] min-h-[100dvh]">
         {children}
       </body>
     </html>

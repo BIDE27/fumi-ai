@@ -122,6 +122,12 @@ export default function FumiWebChatPage() {
   const hasUserMessages = messages.some(m => m.role === 'user');
 
   const startNewSession = useCallback(() => {
+    // Si la session active est déjà vide (sans message), on reste dessus sans empiler de doublons
+    if (currentSession && currentSession.messages.length === 0) {
+      setSidebarOpen(false);
+      setActiveMenuSessionId(null);
+      return;
+    }
     const newId = generateSessionId();
     const newSess: ChatSession = {
       id: newId,
@@ -136,7 +142,8 @@ export default function FumiWebChatPage() {
     setSelectedImages([]);
     setSidebarOpen(false);
     setActiveMenuSessionId(null);
-  }, []);
+  }, [currentSession]);
+
 
   const confirmDeleteSession = () => {
     if (!sessionToDelete) return;

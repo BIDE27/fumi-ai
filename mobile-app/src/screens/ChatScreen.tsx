@@ -25,6 +25,7 @@ import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { askFumiMobile } from '../services/fumiApi';
 import { getFumiGreeting, getFumiProactiveCards, FumiProactiveCard } from '../lib/fumiGreetings';
+import MobileShareModal from '../components/MobileShareModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 320);
@@ -49,9 +50,10 @@ interface ChatSession {
   title: string;
   messages: Message[];
   timestamp: number;
+  pinned?: boolean;
 }
 
-const STORAGE_SESSIONS_KEY = '@fumi_mobile_sessions_v3';
+const STORAGE_SESSIONS_KEY = '@fumi_mobile_sessions_v4';
 const STORAGE_ACTIVE_ID_KEY = '@fumi_mobile_active_id';
 
 export default function ChatScreen() {
@@ -65,6 +67,14 @@ export default function ChatScreen() {
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
+
+  // Gestion du menu contextuel (Épingler, Renommer, Supprimer)
+  const [activeMenuSessionId, setActiveMenuSessionId] = useState<string | null>(null);
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  // Modale de partage
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Animation Drawer (Glissement de Gauche à Droite)
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
@@ -98,7 +108,7 @@ export default function ChatScreen() {
       } catch (e) {
         console.warn("Erreur chargement AsyncStorage:", e);
       }
-      initNewSession();
+      initNewSession(true);
     })();
   }, []);
 
@@ -121,6 +131,8 @@ export default function ChatScreen() {
   }, [sessions, currentSessionId]);
 
   const messages = currentSession?.messages || [];
+  const hasUserMessages = messages.some(m => m.role === 'user');
+  const isCurrentSessionEmpty = currentSession && currentSession.messages.length === 0;
 
   // Salutation dynamique & Cartes proactives
   const greeting = useMemo(() => {
@@ -133,6 +145,8 @@ export default function ChatScreen() {
 
   // Gestion du Drawer (Animation Gauche -> Droite)
   const openDrawer = () => {
+    setActiveMenuSessionId(null);
+    setRenamingSessionId(null);
     setIsDrawerVisible(true);
     Animated.parallel([
       Animated.timing(drawerTranslateX, {
@@ -149,6 +163,8 @@ export default function ChatScreen() {
   };
 
   const closeDrawer = () => {
+    setActiveMenuSessionId(null);
+    setRenamingSessionId(null);
     Animated.parallel([
       Animated.timing(drawerTranslateX, {
         toValue: -DRAWER_WIDTH,
@@ -202,13 +218,20 @@ export default function ChatScreen() {
     });
   };
 
-  const initNewSession = () => {
+  // Création d'une nouvelle session avec protection stricte : impossible de créer une discussion si la discussion courante est déjà vide
+  const initNewSession = (force: boolean = false) => {
+    if (!force && isCurrentSessionEmpty) {
+      closeDrawer();
+      return;
+    }
+
     const newId = `mob_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const newSession: ChatSession = {
       id: newId,
       title: 'Nouvelle discussion',
       messages: [],
       timestamp: Date.now(),
+      pinned: false,
     };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
@@ -217,7 +240,32 @@ export default function ChatScreen() {
     closeDrawer();
   };
 
+  // Gestion du menu contextuel (Épingler, Renommer, Supprimer)
+  const togglePinSession = (id: string) => {
+    setSessions(prev =>
+      prev.map(s => (s.id === id ? { ...s, pinned: !s.pinned } : s))
+    );
+    setActiveMenuSessionId(null);
+  };
+
+  const handleStartRename = (id: string, currentTitle: string) => {
+    setRenamingSessionId(id);
+    setRenameValue(currentTitle);
+    setActiveMenuSessionId(null);
+  };
+
+  const handleSaveRename = (id: string) => {
+    if (renameValue.trim()) {
+      setSessions(prev =>
+        prev.map(s => (s.id === id ? { ...s, title: renameValue.trim() } : s))
+      );
+    }
+    setRenamingSessionId(null);
+    setRenameValue('');
+  };
+
   const deleteSession = (id: string) => {
+    setActiveMenuSessionId(null);
     Alert.alert(
       "Supprimer la discussion",
       "Voulez-vous vraiment effacer cette discussion Fumi ?",
@@ -229,7 +277,7 @@ export default function ChatScreen() {
           onPress: () => {
             const remaining = sessions.filter(s => s.id !== id);
             if (remaining.length === 0) {
-              initNewSession();
+              initNewSession(true);
             } else {
               setSessions(remaining);
               if (currentSessionId === id) {
@@ -399,14 +447,18 @@ export default function ChatScreen() {
   };
 
   const filteredSessions = useMemo(() => {
-    return (sessions || []).filter(s =>
+    const list = (sessions || []).filter(s =>
       s.title.toLowerCase().includes(searchFilter.toLowerCase())
     );
+    return list.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return b.timestamp - a.timestamp;
+    });
   }, [sessions, searchFilter]);
 
   const modeDisplayLabel = chatMode === 'thinking' ? 'Réfléchir' : chatMode === 'fast' ? 'Rapide' : 'Adaptatif';
 
-  // Rendu des icônes vectorielles professionnelles pour les badges de cartes
   const renderCardBadgeIcon = (icon: FumiProactiveCard['badgeIcon']) => {
     switch (icon) {
       case 'crown':
@@ -431,7 +483,7 @@ export default function ChatScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* ================= EN-TÊTE SUPÉRIEUR SANS DÉBORDEMENT NI CERCLE COUPANT ================= */}
+        {/* ================= EN-TÊTE SUPÉRIEUR EXACT AU PIXEL ================= */}
         <View style={styles.header}>
           {/* Bouton Hamburger Vectoriel */}
           <TouchableOpacity
@@ -442,7 +494,7 @@ export default function ChatScreen() {
             <Feather name="menu" size={19} color="#3a1e12" />
           </TouchableOpacity>
 
-          {/* Logo officiel : Avatar libre (sans cercle découpant les cheveux) + Lettre + Badge IA */}
+          {/* Logo officiel : Avatar libre sans cercle + Lettre + Badge IA */}
           <View style={styles.headerCenter}>
             <Image
               source={require('../../assets/fumi_avatar.png')}
@@ -459,14 +511,27 @@ export default function ChatScreen() {
             </View>
           </View>
 
-          {/* Bouton Nouveau Chat (+) Vectoriel */}
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={initNewSession}
-            accessibilityLabel="Nouvelle discussion"
-          >
-            <Feather name="plus" size={19} color="#3a1e12" />
-          </TouchableOpacity>
+          {/* Actions à droite : Bouton Partager (si messages) + Bouton Nouveau Chat (+) */}
+          <View style={styles.headerRightActions}>
+            {hasUserMessages && (
+              <TouchableOpacity
+                style={styles.headerButton}
+                onPress={() => setIsShareModalOpen(true)}
+                accessibilityLabel="Partager la discussion"
+              >
+                <Feather name="share-2" size={17} color="#3a1e12" />
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={[styles.headerButton, isCurrentSessionEmpty && styles.headerButtonDisabled]}
+              onPress={() => initNewSession(false)}
+              disabled={isCurrentSessionEmpty}
+              accessibilityLabel="Nouvelle discussion"
+            >
+              <Feather name="plus" size={19} color={isCurrentSessionEmpty ? '#a8a29e' : '#3a1e12'} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ================= CORPS DU CHAT OU ÉTAT D'ACCUEIL ================= */}
@@ -475,7 +540,7 @@ export default function ChatScreen() {
             contentContainerStyle={styles.welcomeScrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Avatar Fumi 100% libre et transparent (cheveux intacts sans cercle) */}
+            {/* Avatar Fumi libre et transparent (cheveux intacts) */}
             <View style={styles.welcomeMascotteContainer}>
               <Image
                 source={require('../../assets/fumi_avatar.png')}
@@ -493,7 +558,7 @@ export default function ChatScreen() {
             <Text style={styles.welcomeHeadline}>{greeting.headline}</Text>
             <Text style={styles.welcomeSubline}>{greeting.subline}</Text>
 
-            {/* CARROUSEL DES SUGGESTIONS PROACTIVES (Icônes vectorielles professionnelles) */}
+            {/* CARROUSEL DES SUGGESTIONS PROACTIVES */}
             <View style={styles.carouselHeader}>
               <View style={styles.carouselHeaderLeft}>
                 <Ionicons name="sparkles" size={13} color="#a26131" />
@@ -669,9 +734,9 @@ export default function ChatScreen() {
               multiline
             />
 
-            {/* Barre inférieure dans la capsule : [+] à gauche, [Mode ▾] et [Mic/Envoyer] à droite */}
+            {/* Barre inférieure dans la capsule */}
             <View style={styles.capsuleBottomRow}>
-              {/* Bouton + vectoriel pour joindre des photos */}
+              {/* Bouton + vectoriel */}
               <TouchableOpacity
                 style={styles.plusButton}
                 onPress={handlePickImages}
@@ -683,7 +748,7 @@ export default function ChatScreen() {
 
               {/* Bloc droit : Sélecteur de mode déroulant + Action */}
               <View style={styles.capsuleRightActions}>
-                {/* Pilule Sélecteur de mode avec icônes vectorielles */}
+                {/* Pilule Sélecteur de mode */}
                 <TouchableOpacity
                   style={styles.modeDropdownPill}
                   onPress={openModeMenu}
@@ -728,7 +793,7 @@ export default function ChatScreen() {
           </Text>
         </View>
 
-        {/* ================= POPOVER ANCRÉ DU MODE DE RÉPONSE (Animation fluide comme sur le web) ================= */}
+        {/* ================= POPOVER ANCRÉ DU MODE DE RÉPONSE ================= */}
         {isModeOpen && (
           <View style={[StyleSheet.absoluteFill, styles.popoverOverlay]} pointerEvents="box-none">
             <TouchableWithoutFeedback onPress={closeModeMenu}>
@@ -801,7 +866,7 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* ================= DRAWER ANIMÉ DE GAUCHE À DROITE (Comme sur Fa-Vodun) ================= */}
+        {/* ================= DRAWER ANIMÉ AVEC MENU GESTION DISCUSSION EXACT AU PIXEL ================= */}
         {isDrawerVisible && (
           <View style={[StyleSheet.absoluteFill, styles.drawerOverlay]} pointerEvents="box-none">
             {/* Backdrop avec opacité animée */}
@@ -818,7 +883,7 @@ export default function ChatScreen() {
                 },
               ]}
             >
-              {/* En-tête Tiroir avec Avatar libre sans cercle */}
+              {/* En-tête Tiroir (Capture 1) : Avatar + Fumi AI + Souveraine & Polyvalente + Fermer */}
               <View style={styles.drawerHeader}>
                 <View style={styles.drawerBrand}>
                   <Image
@@ -828,7 +893,7 @@ export default function ChatScreen() {
                   />
                   <View>
                     <Text style={styles.drawerTitle}>Fumi AI</Text>
-                    <Text style={styles.drawerSubtitle}>Guide & Assistance H24</Text>
+                    <Text style={styles.drawerSubtitle}>Souveraine & Polyvalente</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -836,68 +901,199 @@ export default function ChatScreen() {
                   onPress={closeDrawer}
                   accessibilityLabel="Fermer le menu"
                 >
-                  <Feather name="x" size={20} color="#6b4028" />
+                  <Feather name="x" size={20} color="#78716c" />
                 </TouchableOpacity>
               </View>
 
-              {/* Bouton Nouvelle Discussion Vectoriel */}
+              {/* Bouton Nouvelle Discussion (Capture 1) avec protection session vide */}
               <TouchableOpacity
-                style={styles.drawerNewButton}
-                onPress={initNewSession}
+                style={[styles.drawerNewButton, isCurrentSessionEmpty && styles.drawerNewButtonDisabled]}
+                onPress={() => initNewSession(false)}
+                disabled={isCurrentSessionEmpty}
+                activeOpacity={0.8}
               >
-                <Feather name="plus" size={15} color="#3a1e12" />
-                <Text style={styles.drawerNewButtonText}>Nouvelle discussion</Text>
+                <Feather name="edit" size={16} color={isCurrentSessionEmpty ? '#a8a29e' : '#6b4028'} />
+                <Text style={[styles.drawerNewButtonText, isCurrentSessionEmpty && styles.drawerNewButtonTextDisabled]}>
+                  Nouvelle discussion
+                </Text>
               </TouchableOpacity>
 
-              {/* Champ de recherche */}
+              {/* Champ de recherche (Capture 1) */}
               <View style={styles.drawerSearchBox}>
                 <Feather name="search" size={14} color="#9e9486" style={{ marginRight: 6 }} />
                 <TextInput
                   style={styles.drawerSearchInput}
                   value={searchFilter}
                   onChangeText={setSearchFilter}
-                  placeholder="Rechercher une discussion..."
+                  placeholder="Rechercher..."
                   placeholderTextColor="#9e9486"
                 />
               </View>
 
-              {/* Liste des discussions */}
-              <ScrollView style={styles.drawerList} showsVerticalScrollIndicator={false}>
+              {/* Liste des discussions avec menu contextuel (Épingler, Renommer, Supprimer) */}
+              <ScrollView
+                style={styles.drawerList}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
                 {filteredSessions.map((s) => {
                   const isActive = s.id === currentSessionId;
+                  const isMenuOpen = activeMenuSessionId === s.id;
+                  const isRenaming = renamingSessionId === s.id;
+
                   return (
-                    <View
-                      key={s.id}
-                      style={[styles.drawerItem, isActive && styles.drawerItemActive]}
-                    >
-                      <TouchableOpacity
-                        style={styles.drawerItemContent}
-                        onPress={() => {
-                          setCurrentSessionId(s.id);
-                          closeDrawer();
-                        }}
-                      >
-                        <Text
-                          style={[styles.drawerItemTitle, isActive && styles.drawerItemTitleActive]}
-                          numberOfLines={1}
+                    <View key={s.id} style={styles.drawerItemWrapper}>
+                      <View style={[styles.drawerItem, isActive && styles.drawerItemActive]}>
+                        <TouchableOpacity
+                          style={styles.drawerItemLeft}
+                          onPress={() => {
+                            setCurrentSessionId(s.id);
+                            closeDrawer();
+                          }}
                         >
-                          {s.title}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.drawerItemDelete}
-                        onPress={() => deleteSession(s.id)}
-                        accessibilityLabel="Supprimer la discussion"
-                      >
-                        <Feather name="trash-2" size={14} color="#dc2626" />
-                      </TouchableOpacity>
+                          <Feather
+                            name="message-square"
+                            size={14}
+                            color={isActive ? '#6b4028' : '#8c827a'}
+                            style={{ marginRight: 8 }}
+                          />
+
+                          {s.pinned && (
+                            <Ionicons
+                              name="pin"
+                              size={12}
+                              color="#d97706"
+                              style={{ marginRight: 4 }}
+                            />
+                          )}
+
+                          {isRenaming ? (
+                            <View style={styles.renameInputContainer}>
+                              <TextInput
+                                style={styles.renameInput}
+                                value={renameValue}
+                                onChangeText={setRenameValue}
+                                autoFocus
+                                onSubmitEditing={() => handleSaveRename(s.id)}
+                              />
+                              <TouchableOpacity
+                                style={styles.renameActionBtn}
+                                onPress={() => handleSaveRename(s.id)}
+                              >
+                                <Feather name="check" size={13} color="#16a34a" />
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.renameActionBtn}
+                                onPress={() => setRenamingSessionId(null)}
+                              >
+                                <Feather name="x" size={13} color="#78716c" />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <Text
+                              style={[
+                                styles.drawerItemTitle,
+                                isActive && styles.drawerItemTitleActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {s.title}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Bouton 3 points verticaux pour ouvrir le menu d'actions (Capture 1) */}
+                        {!isRenaming && (
+                          <TouchableOpacity
+                            style={styles.drawerItemMenuBtn}
+                            onPress={() =>
+                              setActiveMenuSessionId(isMenuOpen ? null : s.id)
+                            }
+                            accessibilityLabel="Menu de la discussion"
+                          >
+                            <Feather name="more-vertical" size={15} color="#78716c" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {/* Fenêtre contextuelle popover (Capture 1 : Épingler, Renommer, Supprimer) */}
+                      {isMenuOpen && (
+                        <View style={styles.sessionPopoverMenu}>
+                          {/* Option 1 : Épingler */}
+                          <TouchableOpacity
+                            style={styles.sessionPopoverItem}
+                            onPress={() => togglePinSession(s.id)}
+                          >
+                            <Ionicons
+                              name={s.pinned ? "pin" : "pin-outline"}
+                              size={14}
+                              color={s.pinned ? "#d97706" : "#44403c"}
+                            />
+                            <Text style={styles.sessionPopoverText}>
+                              {s.pinned ? 'Désépingler' : 'Épingler'}
+                            </Text>
+                          </TouchableOpacity>
+
+                          {/* Option 2 : Renommer */}
+                          <TouchableOpacity
+                            style={styles.sessionPopoverItem}
+                            onPress={() => handleStartRename(s.id, s.title)}
+                          >
+                            <Feather name="edit-2" size={14} color="#44403c" />
+                            <Text style={styles.sessionPopoverText}>Renommer</Text>
+                          </TouchableOpacity>
+
+                          {/* Option 3 : Supprimer en rouge */}
+                          <TouchableOpacity
+                            style={styles.sessionPopoverItem}
+                            onPress={() => deleteSession(s.id)}
+                          >
+                            <Feather name="trash-2" size={14} color="#dc2626" />
+                            <Text style={[styles.sessionPopoverText, { color: '#dc2626' }]}>
+                              Supprimer
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
                   );
                 })}
               </ScrollView>
+
+              {/* Pied du tiroir (Capture 1) : Clés API Fumi / Accès Développeur */}
+              <View style={styles.drawerFooter}>
+                <TouchableOpacity
+                  style={styles.developerKeyButton}
+                  onPress={() => {
+                    closeDrawer();
+                    Alert.alert(
+                      "Clés API Fumi",
+                      "L'API Fumi v1 est disponible sur /api/v1/chat/completions (compatible OpenAI). Vous pouvez générer et gérer vos clés d'API depuis la section Développeur sur le Web.",
+                      [{ text: "Compris" }]
+                    );
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.developerKeyIconContainer}>
+                    <Feather name="key" size={15} color="#834d2e" />
+                  </View>
+                  <View style={styles.developerKeyTextCol}>
+                    <Text style={styles.developerKeyTitle}>Clés API Fumi</Text>
+                    <Text style={styles.developerKeySubtitle}>Accès Développeur</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             </Animated.View>
           </View>
         )}
+
+        {/* ================= MODALE DE PARTAGE EXACTE AU PIXEL DE FA-VODUN ================= */}
+        <MobileShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          sessionTitle={currentSession?.title || "Discussion Fumi"}
+          sessionId={currentSessionId}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -933,6 +1129,14 @@ const styles = StyleSheet.create({
     borderColor: '#f0e6cb',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerButtonDisabled: {
+    opacity: 0.45,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerCenter: {
     flexDirection: 'row',
@@ -1393,7 +1597,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: DRAWER_WIDTH,
     backgroundColor: '#ffffff',
-    padding: 18,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.15,
@@ -1404,10 +1610,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 12,
+    marginBottom: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0e6cb',
+    borderBottomColor: '#f5f0e6',
   },
   drawerBrand: {
     flexDirection: 'row',
@@ -1425,8 +1631,9 @@ const styles = StyleSheet.create({
   },
   drawerSubtitle: {
     fontFamily: 'GoogleSans-Medium',
-    fontSize: 10,
-    color: '#834d2e',
+    fontSize: 10.5,
+    color: '#a26131',
+    marginTop: 1,
   },
   drawerCloseButton: {
     padding: 6,
@@ -1436,29 +1643,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#f8f4e6',
+    backgroundColor: '#fcfaf5',
     borderWidth: 1,
     borderColor: '#f0e6cb',
-    borderRadius: 16,
-    paddingVertical: 11,
+    borderRadius: 24,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
+  drawerNewButtonDisabled: {
+    opacity: 0.5,
+  },
   drawerNewButtonText: {
     fontFamily: 'GoogleSans-Bold',
-    fontSize: 13,
+    fontSize: 13.5,
     color: '#3a1e12',
+  },
+  drawerNewButtonTextDisabled: {
+    color: '#a8a29e',
   },
   drawerSearchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fcfaf5',
+    backgroundColor: '#faf8f2',
     borderWidth: 1,
-    borderColor: '#e5cf9e',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 12,
+    borderColor: '#f0e6cb',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 14,
   },
   drawerSearchInput: {
     flex: 1,
@@ -1470,35 +1683,138 @@ const styles = StyleSheet.create({
   drawerList: {
     flex: 1,
   },
+  drawerItemWrapper: {
+    position: 'relative',
+    marginBottom: 6,
+    zIndex: 1,
+  },
   drawerItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 6,
+    borderRadius: 16,
     backgroundColor: '#ffffff',
   },
   drawerItemActive: {
-    backgroundColor: '#f8f4e6',
+    backgroundColor: '#fcfaf5',
     borderWidth: 1,
-    borderColor: '#e5cf9e',
+    borderColor: '#f0e6cb',
   },
-  drawerItemContent: {
+  drawerItemLeft: {
     flex: 1,
-    marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 6,
   },
   drawerItemTitle: {
+    flex: 1,
     fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
-    color: '#292524',
+    color: '#44403c',
   },
   drawerItemTitleActive: {
     fontFamily: 'GoogleSans-Bold',
     color: '#3a1e12',
   },
-  drawerItemDelete: {
+  drawerItemMenuBtn: {
+    padding: 6,
+  },
+
+  /* Renommer inline */
+  renameInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  renameInput: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dab372',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    fontSize: 12.5,
+    fontFamily: 'GoogleSans-Regular',
+    color: '#292524',
+  },
+  renameActionBtn: {
     padding: 4,
+  },
+
+  /* Menu Popover Contextuel (Capture 1 : Épingler, Renommer, Supprimer) */
+  sessionPopoverMenu: {
+    position: 'absolute',
+    right: 12,
+    top: 40,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 99,
+    minWidth: 136,
+  },
+  sessionPopoverItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  sessionPopoverText: {
+    fontFamily: 'GoogleSans-Medium',
+    fontSize: 12,
+    color: '#292524',
+  },
+
+  /* Pied du tiroir : Clés API Développeur (Capture 1) */
+  drawerFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#f5f0e6',
+    paddingTop: 12,
+    marginTop: 6,
+  },
+  developerKeyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+  },
+  developerKeyIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f8f4e6',
+    borderWidth: 1,
+    borderColor: '#f0e6cb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  developerKeyTextCol: {
+    flex: 1,
+  },
+  developerKeyTitle: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 13,
+    color: '#3a1e12',
+  },
+  developerKeySubtitle: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 11,
+    color: '#a26131',
+    marginTop: 1,
   },
 });

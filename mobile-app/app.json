@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/fumi_avatar_square.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/fumi_avatar.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0f0d0b"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.azavatech.fumi"

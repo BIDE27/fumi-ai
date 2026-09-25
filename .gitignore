@@ -5,6 +5,7 @@ out/
 build/
 dist/
 .expo/
+temp_*/
 
 # Environnement local & secrets
 .env

@@ -11,11 +11,12 @@ Ce document formalise la vision stratégique, l'architecture d'ingénierie logic
 3. [Matrice de Routage Économique & Modèle Freemium Rentable](#3-matrice-de-routage-économique--modèle-freemium-rentable)
 4. [Le Moteur de Code Fumi : Surclasser les Derniers Modèles (GPT-5/6, Claude 4/5)](#4-le-moteur-de-code-fumi--surclasser-les-derniers-modèles-gpt-56-claude-45)
 5. [Économie des Tokens & Rentabilité Absolue des Boucles de Vérification](#5-économie-des-tokens--rentabilité-absolue-des-boucles-de-vérification)
-6. [Génération Automatisée de Vidéos Pédagogiques (Pipeline Python + Manim)](#6-génération-automatisée-de-vidéos-pédagogiques-pipeline-python--manim)
-7. [Automatisation Bureautique & Prise de Contrôle d'Ordinateur (Office & Computer Use)](#7-automatisation-bureautique--prise-de-contrôle-dordinateur-office--computer-use)
-8. [Modèle Souverain & Fine-Tuning : Budget Mensuel Réel & Stack Technique](#8-modèle-souverain--fine-tuning--budget-mensuel-réel--stack-technique)
-9. [Innovations de Rupture & Armes d'Adoption Massive](#9-innovations-de-rupture--armes-dadoption-massive)
-10. [Feuille de Route d'Exécution par Phases](#10-feuille-de-route-déxécution-par-phases)
+6. [Simulations Financières & Techniques Réelles (Apps Basique, Moyenne, Avancée)](#6-simulations-financières--techniques-réelles-apps-basique-moyenne-avancée)
+7. [Génération Automatisée de Vidéos Pédagogiques (Pipeline Python + Manim)](#7-génération-automatisée-de-vidéos-pédagogiques-pipeline-python--manim)
+8. [Automatisation Bureautique & Prise de Contrôle d'Ordinateur (Office & Computer Use)](#8-automatisation-bureautique--prise-de-contrôle-dordinateur-office--computer-use)
+9. [Modèle Souverain & Fine-Tuning : Budget Mensuel Réel & Stack Technique](#9-modèle-souverain--fine-tuning--budget-mensuel-réel--stack-technique)
+10. [Innovations de Rupture & Armes d'Adoption Massive](#10-innovations-de-rupture--armes-dadoption-massive)
+11. [Feuille de Route d'Exécution par Phases](#11-feuille-de-route-déxécution-par-phases)
 
 ---
 
@@ -162,7 +163,85 @@ Quand une erreur est détectée (dans les 20% des cas restants) :
 
 ---
 
-## 6. Génération Automatisée de Vidéos Pédagogiques (Pipeline Python + Manim)
+## 6. Simulations Financières & Techniques Réelles (Apps Basique, Moyenne, Avancée)
+
+Voici une simulation exhaustive, chiffrée au token près, d'une session de développement complète sur Fumi avec notre système chirurgical d'auto-correction.
+
+### 6.1 Cas 1 : Application Basique (Landing Page responsive + Formulaire Leads + Auth locale)
+*Scénario : Un étudiant ou freelance crée une page vitrine complète avec en-tête, sections produits, formulaire de contact typé avec validation Zod et stockage local.*
+
+- **Déroulement de la session :** 3 interactions / prompts structurés.
+- **Activité du Compilateur Fantôme :** 3 passes `tsc` (2 passent direct à 0 ms ; 1 passe détecte une prop manquante et déclenche un micro-patch diff de 35 tokens).
+- **Consommation de Tokens :**
+  - Tokens d'entrée (prompts + contexte) : 6 000 tokens
+  - Tokens de sortie (code généré) : 3 500 tokens
+  - Patch diff d'auto-correction : 35 tokens
+  - **Total tokens consommés : 9 535 tokens**
+- **Coût de revient réel pour Fumi :**
+  - Routage sur DeepSeek-V3 / Qwen Coder : **0,0019 \$ (~1,15 FCFA)**
+- **Facturation au Développeur :**
+  - Inclus dans le Quota Freemium (consomme 3 requêtes sur les 20 gratuites quotidiennes)
+  - Ou vendu en formule Pay-As-You-Go : **150 FCFA (~0,25 \$)**
+- **Bilan Économique :**
+  - **Marge brute Fumi : 99,2%**
+  - **Bénéfice Développeur :** 4 heures de travail économisées.
+
+---
+
+### 6.2 Cas 2 : Application Moyenne (E-commerce / Mini-SaaS avec Panier, Supabase Auth SSR & Paiement Mobile Money)
+*Scénario : Un développeur crée une boutique en ligne complète : base de données PostgreSQL avec RLS, auth Supabase App Router, gestion de panier Zustand, et webhook de paiement Mobile Money (FedaPay / Wave).*
+
+- **Déroulement de la session :** 14 interactions / prompts complets.
+- **Activité du Compilateur Fantôme :** 14 passes de vérification en sandbox. 11 passent du 1er coup. 3 micro-patchs chirurgicaux (total patchs: ~180 tokens).
+- **Consommation de Tokens :**
+  - Tokens d'entrée cumulés : 45 000 tokens
+  - Tokens de sortie générés : 22 000 tokens
+  - Micro-patchs d'auto-correction : 180 tokens
+  - **Total tokens consommés : 67 180 tokens**
+- **Coût de revient réel pour Fumi :**
+  - Routage asymétrique (85% DeepSeek-V3 pour le code boilerplate + 15% Claude 4/5 Sonnet ou GPT-5 pour le webhook de paiement sécurisé) : **0,038 \$ (~23 FCFA)**
+- **Facturation au Développeur :**
+  - Soit vendu via un **Pass Développeur Journée** : **1 500 FCFA (~2,50 \$)**
+  - Soit facturé à l'acte : **1 000 FCFA (~1,60 \$)**
+  - Soit inclus dans l'**Abonnement Pro Mensuel** (10 000 FCFA / mois permettant de faire 25 applications de ce calibre)
+- **Bilan Économique :**
+  - **Marge brute Fumi : 98,5%**
+  - **Bénéfice Développeur :** Économie de 3 à 5 jours de développement intense (valeur locale : 80 000 à 150 000 FCFA).
+
+---
+
+### 6.3 Cas 3 : Application Avancée (SaaS Multi-Tenancy complet, Dashboard temps réel, RBAC, API REST, Tests Jest/E2E)
+*Scénario : Une agence ou une startup conçoit une plateforme SaaS d'entreprise : gestion des rôles (Admin/Manager/Client), abonnements, notifications WebSockets en direct, base distribuée et couverture de tests unitaires/E2E.*
+
+- **Déroulement du sprint :** 45 interactions / prompts structurés.
+- **Activité du Compilateur Fantôme :** 45 passes de compilation `tsc` et exécution de linters. 36 passent du 1er coup. 9 micro-patchs chirurgicaux pour aligner les types complexes (total patchs: ~620 tokens).
+- **Consommation de Tokens :**
+  - Tokens d'entrée cumulés (arborescence + contexte) : 180 000 tokens
+  - Tokens de sortie générés : 85 000 tokens
+  - Micro-patchs d'auto-correction : 620 tokens
+  - **Total tokens consommés : 265 620 tokens**
+- **Coût de revient réel pour Fumi :**
+  - Mix intelligent orchestré (DeepSeek pour 80% du code + Claude 4/5 / GPT-6 pour l'architecture système et la sécurité RBAC) : **0,32 \$ (~195 FCFA)**
+- **Facturation au Client :**
+  - Forfait Entreprise Mensuel : **25 000 à 45 000 FCFA / mois**
+  - Ou Pack Projet Avancé (One-shot) : **5 000 FCFA (~8 \$)**
+- **Bilan Économique :**
+  - **Marge brute Fumi : 96,1%**
+  - **Bénéfice Client :** 2 à 3 semaines de sprint économisées pour une équipe de 2 seniors (valeur marchande : 600 000 à 1 500 000 FCFA).
+
+---
+
+### 6.4 Tableau Récapitulatif de Rentabilité
+
+| Type d'Application | Prompts / Échanges | Tokens Totaux | Coût Réel Fumi (Tokens) | Prix Facturé au Développeur | Marge Brute Fumi |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Basique (Landing Page / Form)** | 3 | ~9 500 | **0,0019 \$ (1,15 FCFA)** | Inclus Free / 150 FCFA | **99,2%** |
+| **Moyenne (E-commerce / SaaS MoMo)** | 14 | ~67 000 | **0,038 \$ (23 FCFA)** | 1 000 à 1 500 FCFA | **98,5%** |
+| **Avancée (SaaS Multi-tenant RBAC)** | 45 | ~265 000 | **0,32 \$ (195 FCFA)** | 5 000 FCFA (ou Forfait Pro) | **96,1%** |
+
+---
+
+## 7. Génération Automatisée de Vidéos Pédagogiques (Pipeline Python + Manim)
 
 L'intégration du moteur d'animation mathématique **Manim** (développé pour *3Blue1Brown*) permet à Fumi d'expliquer visuellement n'importe quel concept abstrait (géométrie, fonctions, physique, réseaux, algorithmique).
 
@@ -188,7 +267,7 @@ sequenceDiagram
     Fumi-->>Eleve: Affiche le lecteur vidéo intégré avec voix explicative
 ```
 
-### 6.1 Caractéristiques Techniques de la Sandbox Manim
+### 7.1 Caractéristiques Techniques de la Sandbox Manim
 - **Environnement Conteneurisé Sécurisé** : Image Docker minimale basée sur Python 3.11 avec `manimcommunity`, `ffmpeg`, et un sous-ensemble LaTeX optimisé.
 - **Rendu Web-First & Mobile-First** : Résolution 720p (1280x720) ou format vertical 9:16 (pour TikTok / Reels / Shorts éducatifs), encodage H.264 / AAC pour compatibilité totale avec Safari iOS et Chrome Android.
 - **Cache Éducatif Collaboratif** : Chaque vidéo générée est indexée dans la bibliothèque publique Fumi Cours. Un même concept n'est rendu qu'une seule fois ; les consultations suivantes sont instantanées et gratuites en calcul.
@@ -196,18 +275,18 @@ sequenceDiagram
 
 ---
 
-## 7. Automatisation Bureautique & Prise de Contrôle d'Ordinateur (Office & Computer Use)
+## 8. Automatisation Bureautique & Prise de Contrôle d'Ordinateur (Office & Computer Use)
 
 Pour transformer Fumi en véritable assistant de travail actif, deux architectures complémentaires sont déployées :
 
-### 7.1 Voie A : Génération Directe "Headless" Côté Serveur (Zéro Installation)
+### 8.1 Voie A : Génération Directe "Headless" Côté Serveur (Zéro Installation)
 L'utilisateur demande un document sur son téléphone ou navigateur, Fumi le produit instantanément :
 - **Fichiers Excel (`.xlsx`)** : Générés via `openpyxl` / `xlsxwriter`. Intègre automatiquement les en-têtes stylisés, les formules dynamiques calculées (`=SOMME(...)`, `=RECHERCHEV(...)`), les tableaux croisés et les graphiques intégrés.
 - **Documents Word (`.docx`)** : Générés via `python-docx`. Mise en page soignée, typographie harmonieuse, tables formatées, prêts à l'impression.
 - **Présentations PowerPoint (`.pptx`)** : Générées via `python-pptx` avec diapositives structurées.
 - **Rapports PDF** : Générés via `reportlab` ou compilation HTML-to-PDF (`weasyprint`).
 
-### 7.2 Voie B : Le Fumi Desktop Companion (Agent Local de Contrôle)
+### 8.2 Voie B : Le Fumi Desktop Companion (Agent Local de Contrôle)
 Pour piloter la machine de l'utilisateur sur demande explicite :
 - **Client Léger Local** : Application de bureau discrète (écrite en Python ou Tauri/Rust) s'installant en 1 clic sous Windows et macOS.
 - **Protocole d'Appairage Sécurisé** : L'utilisateur scanne un QR code ou saisit un code OTP à 6 chiffres affiché sur son mobile pour autoriser l'appairage WebSocket chiffré (TLS).
@@ -217,20 +296,20 @@ Pour piloter la machine de l'utilisateur sur demande explicite :
 
 ---
 
-## 8. Modèle Souverain & Fine-Tuning : Budget Mensuel Réel & Stack Technique
+## 9. Modèle Souverain & Fine-Tuning : Budget Mensuel Réel & Stack Technique
 
 Il n'est pas nécessaire de disposer de millions de dollars pour posséder son propre modèle de langage souverain. Grâce aux progrès du **QLoRA** (Quantized Low-Rank Adaptation) et des moteurs d'inférence modernes (**vLLM**), voici le plan d'infrastructure réaliste.
 
-### 8.1 Choix de l'Architecture de Base (Open Source d'Élite)
+### 9.1 Choix de l'Architecture de Base (Open Source d'Élite)
 - **Modèle de départ recommandé** : **Qwen 2.5 Coder (7B ou 14B)** ou **Llama 3.3 (8B)**.
 - Ces modèles surpassent les anciens modèles généralistes massifs sur le code, les mathématiques, la compréhension du français et la logique instructionnelle.
 
-### 8.2 La Stratégie du Dataset d'Or (Synthetic Verified Data)
+### 9.2 La Stratégie du Dataset d'Or (Synthetic Verified Data)
 - On ne fine-tune **JAMAIS** sur du texte brut non vérifié.
 - On injecte uniquement dans le dataset Fumi les codes et solutions qui ont passé à 100% le compilateur fantôme et les tests unitaires.
 - **Résultat** : Un modèle 14B entraîné sur 50 000 paires certifiées surpasse les modèles à 1 000 milliards de paramètres sur le code réel, car il n'a jamais appris à halluciner du mauvais code.
 
-### 8.3 Tableau Budgétaire Opérationnel Mensuel
+### 9.3 Tableau Budgétaire Opérationnel Mensuel
 
 | Poste d'Infrastructure | Fournisseur / Outil | Fréquence / Utilisation | Coût Estimé / Mois |
 | :--- | :--- | :--- | :--- |
@@ -246,24 +325,24 @@ Il n'est pas nécessaire de disposer de millions de dollars pour posséder son p
 
 ---
 
-## 9. Innovations de Rupture & Armes d'Adoption Massive
+## 10. Innovations de Rupture & Armes d'Adoption Massive
 
 Pour créer une dépendance positive des utilisateurs et empêcher toute désertion vers les géants américains :
 
-### 9.1 Le Bot Fumi WhatsApp "Voice-to-Doc"
+### 10.1 Le Bot Fumi WhatsApp "Voice-to-Doc"
 - Intégration via l'API officielle WhatsApp Cloud.
 - L'utilisateur envoie une note vocale : *"Fumi, crée un fichier Excel pour la comptabilité de mon magasin avec les dépenses en carburant, salaires et stock"*.
 - Fumi transcrit la voix, analyse le besoin, génère le vrai classeur `.xlsx` et le renvoie en pièce jointe directement dans la conversation WhatsApp en moins de 15 secondes.
 
-### 9.2 Le Terminal de Code Éducatif dans le Navigateur
+### 10.2 Le Terminal de Code Éducatif dans le Navigateur
 - Un bouton interactif **"Exécuter"** sur tous les blocs de code générés par Fumi.
 - Exécution instantanée dans une boîte de sable WebAssembly (Pyodide pour Python, WebContainers pour JavaScript) : les étudiants apprennent à coder sur smartphone sans installer aucun compilateur.
 
-### 9.3 Mode Données Faibles (Low-Bandwidth Mode)
+### 10.3 Mode Données Faibles (Low-Bandwidth Mode)
 - Compression Gzip/Brotli agressive sur tous les flux de streaming.
 - Cache local sur le smartphone via IndexedDB / SQLite pour revoir l'historique et les cours hors-connexion.
 
-### 9.4 Monétisation Native par Mobile Money
+### 10.4 Monétisation Native par Mobile Money
 - Intégration de micro-pass journaliers ou par document :
   - **Pass Étudiant Journée** : 200 FCFA (~0,30 \$)
   - **Pack Génération Vidéo / Document Pro** : 500 FCFA (~0,80 \$)
@@ -271,7 +350,7 @@ Pour créer une dépendance positive des utilisateurs et empêcher toute désert
 
 ---
 
-## 10. Feuille de Route d'Exécution par Phases
+## 11. Feuille de Route d'Exécution par Phases
 
 ```mermaid
 gantt
@@ -294,4 +373,4 @@ gantt
 
 ---
 
-*Document de référence stratégique et technique Fumi IA — Version 2.0 (Mise à jour Fumi Code Engine & Token Economics) — Confidentiel & Propriétaire.*
+*Document de référence stratégique et technique Fumi IA — Version 3.0 (Intégration des Simulations Financières Réelles de Sessions de Dev) — Confidentiel & Propriétaire.*

@@ -16,6 +16,8 @@
 
   --animate-fadeIn: fadeIn 0.4s ease-out forwards;
   --animate-slideUp: slideUp 0.4s ease-out forwards;
+  --animate-slideRight: slideRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-scaleIn: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   
   @keyframes fadeIn {
     0% { opacity: 0; }
@@ -26,11 +28,30 @@
     0% { transform: translateY(16px); opacity: 0; }
     100% { transform: translateY(0); opacity: 1; }
   }
+
+  @keyframes slideRight {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes scaleIn {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 }
 
 :root {
-  --background: #0f0d0b;
-  --foreground: #fcfaf5;
+  --background: #fcfaf5;
+  --foreground: #292524;
+  --fumi-card-width: min(72vw, 250px);
+  --fumi-card-max-width: 250px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --fumi-card-width: 290px;
+    --fumi-card-max-width: 290px;
+  }
 }
 
 html, body {
@@ -63,4 +84,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(209, 152, 75, 0.5);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

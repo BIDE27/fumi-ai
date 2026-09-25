@@ -14,12 +14,14 @@ export async function askFumiMobile({
   question,
   history = [],
   chatMode = 'adaptive',
+  images = [],
   apiUrl = DEFAULT_API_URL,
   apiKey
 }: {
   question: string;
   history?: Array<{ role: string; text: string }>;
   chatMode?: 'adaptive' | 'fast' | 'thinking';
+  images?: Array<{ data: string; mimeType: string }>;
   apiUrl?: string;
   apiKey?: string;
 }): Promise<{ text: string; model: string; isDeepReasoning?: boolean }> {
@@ -42,7 +44,8 @@ export async function askFumiMobile({
         payload: {
           question,
           history,
-          chatMode
+          chatMode,
+          images: images.length > 0 ? images : undefined
         }
       })
     });
@@ -53,14 +56,14 @@ export async function askFumiMobile({
 
     const data = await res.json();
     return {
-      text: data.result || "Désolé, aucune réponse générée.",
+      text: data.result || "Désolée, aucune réponse générée.",
       model: data.model || "fumi-sovereign",
       isDeepReasoning: data.isDeepReasoning
     };
   } catch (error: any) {
     console.error("[Fumi Mobile API Error]:", error);
     return {
-      text: `Une fluctuation de réseau est survenue. Veuillez réessayer ! (${error?.message || 'Erreur'})`,
+      text: `Une fluctuation de réseau est survenue. Veuillez vérifier votre connexion et relancer votre demande. (${error?.message || 'Erreur'})`,
       model: "fumi-mobile-fallback"
     };
   }

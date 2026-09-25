@@ -26,6 +26,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { askFumiMobile } from '../services/fumiApi';
 import { getFumiGreeting, getFumiProactiveCards, FumiProactiveCard } from '../lib/fumiGreetings';
 import MobileShareModal from '../components/MobileShareModal';
+import { LucidePinIcon } from '../components/PinIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 320);
@@ -959,11 +960,11 @@ export default function ChatScreen() {
                           />
 
                           {s.pinned && (
-                            <Ionicons
-                              name="pin"
+                            <LucidePinIcon
                               size={12}
                               color="#d97706"
-                              style={{ marginRight: 4 }}
+                              filled={true}
+                              style={{ marginRight: 5 }}
                             />
                           )}
 
@@ -1002,7 +1003,7 @@ export default function ChatScreen() {
                           )}
                         </TouchableOpacity>
 
-                        {/* Bouton 3 points verticaux pour ouvrir le menu d'actions (Capture 1) */}
+                        {/* Bouton 3 points verticaux pour ouvrir le menu d'actions (Capture 1 & 2) */}
                         {!isRenaming && (
                           <TouchableOpacity
                             style={styles.drawerItemMenuBtn}
@@ -1016,25 +1017,38 @@ export default function ChatScreen() {
                         )}
                       </View>
 
-                      {/* Fenêtre contextuelle popover (Capture 1 : Épingler, Renommer, Supprimer) */}
+                      {/* Fenêtre contextuelle popover (Capture 1 & 2 : Épingler, Partager, Renommer, Supprimer) */}
                       {isMenuOpen && (
                         <View style={styles.sessionPopoverMenu}>
-                          {/* Option 1 : Épingler */}
+                          {/* Option 1 : Épingler (Exactement l'icône de Capture 1) */}
                           <TouchableOpacity
                             style={styles.sessionPopoverItem}
                             onPress={() => togglePinSession(s.id)}
                           >
-                            <Ionicons
-                              name={s.pinned ? "pin" : "pin-outline"}
+                            <LucidePinIcon
                               size={14}
                               color={s.pinned ? "#d97706" : "#44403c"}
+                              filled={Boolean(s.pinned)}
                             />
-                            <Text style={styles.sessionPopoverText}>
+                            <Text style={[styles.sessionPopoverText, s.pinned && { color: '#d97706' }]}>
                               {s.pinned ? 'Désépingler' : 'Épingler'}
                             </Text>
                           </TouchableOpacity>
 
-                          {/* Option 2 : Renommer */}
+                          {/* Option 2 : Partager (Demandé expressément en Capture 2) */}
+                          <TouchableOpacity
+                            style={styles.sessionPopoverItem}
+                            onPress={() => {
+                              setActiveMenuSessionId(null);
+                              setCurrentSessionId(s.id);
+                              setIsShareModalOpen(true);
+                            }}
+                          >
+                            <Feather name="share-2" size={14} color="#44403c" />
+                            <Text style={styles.sessionPopoverText}>Partager</Text>
+                          </TouchableOpacity>
+
+                          {/* Option 3 : Renommer */}
                           <TouchableOpacity
                             style={styles.sessionPopoverItem}
                             onPress={() => handleStartRename(s.id, s.title)}
@@ -1043,7 +1057,7 @@ export default function ChatScreen() {
                             <Text style={styles.sessionPopoverText}>Renommer</Text>
                           </TouchableOpacity>
 
-                          {/* Option 3 : Supprimer en rouge */}
+                          {/* Option 4 : Supprimer en rouge */}
                           <TouchableOpacity
                             style={styles.sessionPopoverItem}
                             onPress={() => deleteSession(s.id)}
@@ -1055,6 +1069,7 @@ export default function ChatScreen() {
                           </TouchableOpacity>
                         </View>
                       )}
+
                     </View>
                   );
                 })}

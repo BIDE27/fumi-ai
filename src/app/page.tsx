@@ -566,15 +566,28 @@ export default function FumiWebChatPage() {
                     >
                       <button
                         onClick={(e) => handleTogglePin(s, e)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-stone-700 hover:bg-stone-50 text-left"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-stone-700 hover:bg-stone-50 text-left cursor-pointer"
                       >
                         {s.isPinned ? <PinOff size={13} /> : <Pin size={13} />}
                         <span>{s.isPinned ? 'Désépingler' : 'Épingler'}</span>
                       </button>
 
                       <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentSessionId(s.id);
+                          setIsShareModalOpen(true);
+                          setActiveMenuSessionId(null);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-stone-700 hover:bg-stone-50 text-left cursor-pointer"
+                      >
+                        <Share2 size={13} />
+                        <span>Partager</span>
+                      </button>
+
+                      <button
                         onClick={(e) => handleStartRename(s, e)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-stone-700 hover:bg-stone-50 text-left"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-stone-700 hover:bg-stone-50 text-left cursor-pointer"
                       >
                         <Pencil size={13} />
                         <span>Renommer</span>

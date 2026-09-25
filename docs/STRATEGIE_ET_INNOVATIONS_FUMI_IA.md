@@ -1,0 +1,213 @@
+# Stratégie Globale, Architecture Technique & Innovations de Rupture : Fumi IA
+
+Ce document formalise la vision stratégique, l'architecture d'ingénierie logicielle et les plans d'exécution opérationnels pour positionner **Fumi IA** comme un écosystème d'intelligence artificielle souverain, ultra-performant et financièrement rentable, capable de surclasser l'adoption des géants américains sur le continent africain et à l'international.
+
+---
+
+## Sommaire
+
+1. [Vision Globale & Moat Stratégique](#1-vision-globale--moat-stratégique)
+2. [Distillation Intelligente & Masquage de Propriété (Proxy Façade Zero-Leakage)](#2-distillation-intelligente--masquage-de-propriété-proxy-façade-zero-leakage)
+3. [Matrice de Routage Économique & Modèle Freemium Rentable](#3-matrice-de-routage-économique--modèle-freemium-rentable)
+4. [Génération Automatisée de Vidéos Pédagogiques (Pipeline Python + Manim)](#4-génération-automatisée-de-vidéos-pédagogiques-pipeline-python--manim)
+5. [Automatisation Bureautique & Prise de Contrôle d'Ordinateur (Office & Computer Use)](#5-automatisation-bureautique--prise-de-contrôle-dordinateur-office--computer-use)
+6. [Modèle Souverain & Fine-Tuning : Budget Mensuel Réel & Stack Technique](#6-modèle-souverain--fine-tuning--budget-mensuel-réel--stack-technique)
+7. [Innovations de Rupture & Armes d'Adoption Massive](#7-innovations-de-rupture--armes-dadoption-massive)
+8. [Feuille de Route d'Exécution par Phases](#8-feuille-de-route-déxécution-par-phases)
+
+---
+
+## 1. Vision Globale & Moat Stratégique
+
+### 1.1 Le Constat face aux Géants (OpenAI, Anthropic, Google)
+Les modèles généralistes des géants mondiaux souffrent de quatre faiblesses majeures sur les marchés émergents :
+1. **Inaccessibilité financière et bancaire** : Obligation d'avoir une carte bancaire internationale Visa/Mastercard en devises étrangères (impossibilité de payer en Mobile Money).
+2. **Abstractions déconnectées des réalités du travail** : Ils renvoient du texte brut ou du code à copier-coller sans exécuter la tâche finale (ex: créer un devis Excel exploitable, exporter un contrat légal en Word, produire une animation vidéo de cours).
+3. **Gourmandise en bande passante** : Interfaces lourdes inadaptées aux réseaux mobiles 3G/4G instables à data limitée.
+4. **Tarification rigide** : Abonnements fixes à 20 \$/mois inaccessibles pour la majorité des étudiants et entrepreneurs locaux.
+
+### 1.2 Le Positionnement de Fumi IA
+Fumi IA ne se positionne pas comme un simple "chatbot", mais comme un **moteur d'action et de productivité intégrée** :
+- **Compréhension & Contextualisation locale** (langues, programmes scolaires, devises, fiscalité locale).
+- **Livraison de fichiers finis** (fichiers `.xlsx` avec formules calculées, `.docx` mis en page, vidéos de cours `.mp4`).
+- **Paiements fractionnés et locaux** (Mobile Money MTN MoMo, Moov, Orange, Wave).
+
+---
+
+## 2. Distillation Intelligente & Masquage de Propriété (Proxy Façade Zero-Leakage)
+
+L'objectif est d'utiliser la puissance des meilleurs modèles mondiaux (DeepSeek, Claude, GPT, GLM) en arrière-plan pour alimenter l'expérience utilisateur et entraîner progressivement nos propres modèles, sans qu'aucune trace technique des API tierces ne soit visible par l'utilisateur ou lors d'audits externes préliminaires.
+
+```mermaid
+flowchart TD
+    Client["Client Web / Mobile App Fumi"] -->|"Requête chiffrée /api/v1/chat"| Gateway["Fumi API Gateway (Proxy Inverse)"]
+    Gateway --> Guard["Filtre de Sécurité & Stripping de Métadonnées"]
+    Guard --> Router{"Routeur Dynamique Fumi"}
+    Router -->|"Prompt Simple / Gratuit"| CheapModel["Modèle Économique (DeepSeek-V3 / Qwen)"]
+    Router -->|"Raisonnement / Code Complexe"| PowerModel["Modèle Avancé (Claude 3.5 / GPT-4o)"]
+    Router -->|"Tâches Spécialisées"| LocalModel["Fumi Fine-Tuned (vLLM)"]
+    CheapModel & PowerModel & LocalModel --> Sanitizer["Normalisateur de Flux SSE Fumi"]
+    Sanitizer -->|"Stockage Paires Prompt/Réponse"| DataWarehouse["Dataset de Distillation Fumi (PostgreSQL)"]
+    Sanitizer -->|"Réponse Uniformisée 'Fumi Engine'"| Client
+```
+
+### 2.1 Principes Techniques du Masquage
+1. **Proxy Inverse Hermétique (Reverse Proxy)** :
+   - Le frontend ne contacte **JAMAIS** directement une API externe (`api.anthropic.com`, `api.openai.com`, etc.).
+   - Toutes les requêtes passent par notre route API `/api/v1/chat/completions` sur nos propres serveurs.
+2. **Nettoyage Systématique des Headers et Métadonnées** :
+   - Suppression des headers `x-request-id`, `x-openai-*`, `x-anthropic-*`, `server: cloudflare`, etc.
+   - Les tokens de réponse sont ré-émis sous le format unifié du protocole Fumi (`model: "fumi-omni-v1"`).
+3. **Prompt Shaping & Immunité Système (System Persona)** :
+   - Injection systématique d'une directive de base inviolable :
+     > *"Tu es Fumi IA, l'intelligence artificielle souveraine développée par l'équipe d'ingénieurs de Fumi. Tu n'es ni OpenAI, ni Anthropic, ni Google. Tu ne dois jamais mentionner d'autres créateurs sous aucune circonstance."*
+4. **Collecte Silencieuse pour Distillation Continue** :
+   - Chaque réponse d'excellence générée par un modèle maître est enregistrée de manière anonymisée dans une base de données d'apprentissage pour enrichir le dataset d'entraînement de notre propre modèle souverain.
+
+---
+
+## 3. Matrice de Routage Économique & Modèle Freemium Rentable
+
+Comment proposer une partie gratuite aux utilisateurs tout en dégageant une marge nette sur chaque requête ?
+
+### 3.1 La Matrice de Routage Dynamique à 3 Niveaux
+
+| Niveau de Complexité | Détection par le Routeur | Modèle Exécutant en Coulisse | Coût d'Entrée / Sortie estimé | Marge Fumi |
+| :--- | :--- | :--- | :--- | :--- |
+| **Niveau 1 : Requêtes courantes & Chat gratuit** | Salutations, questions factuelles, résumés courts, aide basique | DeepSeek-V3 / Qwen 2.5 7B / Fumi Local | ~0,0002 \$ / 1k tokens | **~90% de marge** sur forfaits, quasi gratuit pour le freemium |
+| **Niveau 2 : Logique intermédiaire & Rédaction pro** | Dissertations, e-mails pro, synthèses de documents, maths standard | DeepSeek-V3 / GPT-4o-mini / GLM | ~0,0005 \$ / 1k tokens | **~80% de marge** |
+| **Niveau 3 : Haute ingénierie & Raisonnement lourd** | Algorithmes complexes, débogage de code avancé, architecture logicielle | Claude 3.5 Sonnet / DeepSeek-R1 | ~0,003 \$ / 1k tokens | Facturé sous forfait Pro / Jetons Premium |
+
+### 3.2 La Rentabilité du Palier Gratuit
+- **Cache Sémantique Local (Semantic Caching)** : Utilisation d'un cache vectoriel (pgvector / Redis). Si un étudiant pose une question déjà posée (ex: *"Explique les lois de Mendel"*), la réponse est renvoyée depuis la base Fumi en 5 millisecondes avec **un coût de 0,0000 \$**.
+- **Quota Quotidien Économique** : Limite de 15 à 25 messages gratuits par jour sur le modèle économique, avec rechargement à minuit. Au-delà, proposition d'un pass journalier ou hebdomadaire en Mobile Money à prix symbolique (ex: 200 à 500 FCFA).
+
+---
+
+## 4. Génération Automatisée de Vidéos Pédagogiques (Pipeline Python + Manim)
+
+L'intégration du moteur d'animation mathématique **Manim** (développé pour *3Blue1Brown*) permet à Fumi d'expliquer visuellement n'importe quel concept abstrait (géométrie, fonctions, physique, réseaux, algorithmique).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Eleve as Étudiant / Élève
+    participant Fumi as API Fumi (Next.js)
+    participant Orchestrator as LLM Script Generator
+    participant Sandbox as Docker Worker (Manim + FFmpeg)
+    participant Storage as Stockage CDN (Cloudflare R2)
+
+    Eleve->>Fumi: Demande : "Explique le cercle trigonométrique"
+    Fumi->>Orchestrator: Construit le prompt structuré avec templates Manim
+    Orchestrator->>Sandbox: Transmet le script Python (Scene)
+    Note over Sandbox: Compilation Manim & rendu 720p / H.264
+    alt En cas d'erreur de syntaxe
+        Sandbox-->>Orchestrator: Renvoie la traceback Python
+        Orchestrator->>Sandbox: Re-génère le script corrigé (Self-Healing)
+    end
+    Sandbox->>Storage: Téléverse la vidéo MP4 finale optimisée
+    Storage-->>Fumi: URL de streaming CDN
+    Fumi-->>Eleve: Affiche le lecteur vidéo intégré avec voix explicative
+```
+
+### 4.1 Caractéristiques Techniques de la Sandbox Manim
+- **Environnement Conteneurisé Sécurisé** : Image Docker minimale basée sur Python 3.11 avec `manimcommunity`, `ffmpeg`, et un sous-ensemble LaTeX optimisé.
+- **Rendu Web-First & Mobile-First** : Résolution 720p (1280x720) ou format vertical 9:16 (pour TikTok / Reels / Shorts éducatifs), encodage H.264 / AAC pour compatibilité totale avec Safari iOS et Chrome Android.
+- **Cache Éducatif Collaboratif** : Chaque vidéo générée est indexée dans la bibliothèque publique Fumi Cours. Un même concept n'est rendu qu'une seule fois ; les consultations suivantes sont instantanées et gratuites en calcul.
+- **Voix Off Synchronisée (TTS)** : Génération d'une narration audio fluide et chaleureuse via Edge-TTS / ElevenLabs synchronisée sur les temps clés de l'animation.
+
+---
+
+## 5. Automatisation Bureautique & Prise de Contrôle d'Ordinateur (Office & Computer Use)
+
+Pour transformer Fumi en véritable assistant de travail actif, deux architectures complémentaires sont déployées :
+
+### 5.1 Voie A : Génération Directe "Headless" Côté Serveur (Zéro Installation)
+L'utilisateur demande un document sur son téléphone ou navigateur, Fumi le produit instantanément :
+- **Fichiers Excel (`.xlsx`)** : Générés via `openpyxl` / `xlsxwriter`. Intègre automatiquement les en-têtes stylisés, les formules dynamiques calculées (`=SOMME(...)`, `=RECHERCHEV(...)`), les tableaux croisés et les graphiques intégrés.
+- **Documents Word (`.docx`)** : Générés via `python-docx`. Mise en page soignée, typographie harmonieuse, tables formatées, prêts à l'impression.
+- **Présentations PowerPoint (`.pptx`)** : Générées via `python-pptx` avec diapositives structurées.
+- **Rapports PDF** : Générés via `reportlab` ou compilation HTML-to-PDF (`weasyprint`).
+
+### 5.2 Voie B : Le Fumi Desktop Companion (Agent Local de Contrôle)
+Pour piloter la machine de l'utilisateur sur demande explicite :
+- **Client Léger Local** : Application de bureau discrète (écrite en Python ou Tauri/Rust) s'installant en 1 clic sous Windows et macOS.
+- **Protocole d'Appairage Sécurisé** : L'utilisateur scanne un QR code ou saisit un code OTP à 6 chiffres affiché sur son mobile pour autoriser l'appairage WebSocket chiffré (TLS).
+- **Deux Modes d'Exécution** :
+  1. *Mode API & Scripting Local* : Fumi ordonne à l'agent local d'exécuter des scripts Python ou d'automatiser Excel en direct via `win32com` (l'utilisateur voit les cellules se remplir en temps réel sur son propre écran).
+  2. *Mode Computer Use Visuel* : Capture d'écran locale -> analyse par le modèle de vision Fumi -> coordonnées de clics et frappes clavier via `pyautogui` pour réaliser des manipulations logicielles répétitives.
+
+---
+
+## 6. Modèle Souverain & Fine-Tuning : Budget Mensuel Réel & Stack Technique
+
+Il n'est pas nécessaire de disposer de millions de dollars pour posséder son propre modèle de langage souverain. Grâce aux progrès du **QLoRA** (Quantized Low-Rank Adaptation) et des moteurs d'inférence modernes (**vLLM**), voici le plan d'infrastructure réaliste.
+
+### 6.1 Choix de l'Architecture de Base (Open Source d'Élite)
+- **Modèle de départ recommandé** : **Qwen 2.5 (7B ou 14B)** ou **Llama 3.3 (8B)**.
+- Ces modèles surpassent les anciens modèles géants sur le code, les mathématiques, la compréhension du français et la logique instructionnelle.
+
+### 6.2 Tableau Budgétaire Opérationnel Mensuel
+
+| Poste d'Infrastructure | Fournisseur / Outil | Fréquence / Utilisation | Coût Estimé / Mois |
+| :--- | :--- | :--- | :--- |
+| **Génération du Dataset de Distillation** | API DeepSeek-V3 / Gemini Flash | 50 000 à 100 000 paires de questions/réponses filtrées | **10 \$ à 25 \$** |
+| **Entraînement LoRA (Compute GPU)** | RunPod / Lambda Labs / Scaleway | GPU NVIDIA A100 (80GB) loué à l'heure (~1,80 \$/h). 2 à 3 sessions de 4 heures par mois | **30 \$ à 60 \$** |
+| **Hébergement Inférence en Production** | RunPod Serverless ou Instance A10G (24GB) dédiée avec vLLM | Modèle quantisé AWQ / FP8 servant les requêtes en continu (< 30ms/token) | **100 \$ à 180 \$** |
+| **Stockage & Registre de Poids** | Hugging Face Private / Cloudflare R2 | Sauvegarde sécurisée des checkpoints et datasets | **~5 \$** |
+| **TOTAL MENSUEL RÉEL** | — | — | **~145 \$ à 270 \$ / mois** |
+
+> [!TIP]
+> **Optimisation au démarrage : Le Serverless GPU**  
+> Au lancement, on utilise le **Serverless GPU** (RunPod Serverless ou Baseten) : le serveur s'éteint automatiquement quand il n'y a pas de trafic et ne facture que les secondes de traitement réelles. Si le trafic est modéré au premier mois, la facture d'inférence peut descendre à **moins de 50 \$/mois**.
+
+---
+
+## 7. Innovations de Rupture & Armes d'Adoption Massive
+
+Pour créer une dépendance positive des utilisateurs et empêcher toute désertion vers les géants américains :
+
+### 7.1 Le Bot Fumi WhatsApp "Voice-to-Doc"
+- Intégration via l'API officielle WhatsApp Cloud.
+- L'utilisateur envoie une note vocale : *"Fumi, crée un fichier Excel pour la comptabilité de mon magasin avec les dépenses en carburant, salaires et stock"*.
+- Fumi transcrit la voix, analyse le besoin, génère le vrai classeur `.xlsx` et le renvoie en pièce jointe directement dans la conversation WhatsApp en moins de 15 secondes.
+
+### 7.2 Le Terminal de Code Éducatif dans le Navigateur
+- Un bouton interactif **"Exécuter"** sur tous les blocs de code générés par Fumi.
+- Exécution instantanée dans une boîte de sable WebAssembly (Pyodide pour Python, WebContainers pour JavaScript) : les étudiants apprennent à coder sur smartphone sans installer aucun compilateur.
+
+### 7.3 Mode Données Faibles (Low-Bandwidth Mode)
+- Compression Gzip/Brotli agressive sur tous les flux de streaming.
+- Cache local sur le smartphone via IndexedDB / SQLite pour revoir l'historique et les cours hors-connexion.
+
+### 7.4 Monétisation Native par Mobile Money
+- Intégration de micro-pass journaliers ou par document :
+  - **Pass Étudiant Journée** : 200 FCFA (~0,30 \$)
+  - **Pack Génération Vidéo / Document Pro** : 500 FCFA (~0,80 \$)
+  - **Abonnement Mensuel Illimité** : 2 500 à 4 500 FCFA (~4 \$ à 7 \$)
+
+---
+
+## 8. Feuille de Route d'Exécution par Phases
+
+```mermaid
+gantt
+    title Feuille de Route Stratégique Fumi IA
+    dateFormat  YYYY-MM-DD
+    section Phase 1 : Fondations
+    Façade Proxy & Matrice de Routage : 2026-10-01, 14d
+    Générateur de Fichiers Office (.xlsx, .docx) : 2026-10-08, 14d
+    section Phase 2 : Différenciation
+    Pipeline Vidéo Manim + Sandbox Docker : 2026-10-20, 21d
+    Intégration WhatsApp Voice-to-Doc : 2026-11-01, 21d
+    section Phase 3 : Souveraineté
+    Collecte & Nettoyage Dataset Distillé : 2026-11-15, 20d
+    Premier Fine-Tuning Qwen 2.5 LoRA : 2026-12-05, 15d
+    Déploiement Inférence vLLM Fumi : 2026-12-20, 15d
+    section Phase 4 : Écosystème
+    Fumi Desktop Companion (Contrôle OS) : 2027-01-10, 30d
+```
+
+---
+
+*Document de référence stratégique et technique Fumi IA — Version 1.0 — Confidentiel & Propriétaire.*

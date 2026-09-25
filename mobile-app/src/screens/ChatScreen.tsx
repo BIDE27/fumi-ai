@@ -5,6 +5,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -12,11 +13,12 @@ import {
   ActivityIndicator,
   ScrollView,
   StatusBar,
-  Modal,
   Alert,
-  Dimensions
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Speech from 'expo-speech';
 import * as Clipboard from 'expo-clipboard';
@@ -25,6 +27,7 @@ import { askFumiMobile } from '../services/fumiApi';
 import { getFumiGreeting, getFumiProactiveCards, FumiProactiveCard } from '../lib/fumiGreetings';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 320);
 
 interface AttachedImage {
   id: string;
@@ -48,7 +51,7 @@ interface ChatSession {
   timestamp: number;
 }
 
-const STORAGE_SESSIONS_KEY = '@fumi_mobile_sessions_v2';
+const STORAGE_SESSIONS_KEY = '@fumi_mobile_sessions_v3';
 const STORAGE_ACTIVE_ID_KEY = '@fumi_mobile_active_id';
 
 export default function ChatScreen() {
@@ -58,12 +61,20 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [chatMode, setChatMode] = useState<'adaptive' | 'fast' | 'thinking'>('adaptive');
-  const [isModeModalOpen, setIsModeModalOpen] = useState(false);
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
+
+  // Animation Drawer (Glissement de Gauche à Droite)
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const drawerTranslateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const drawerBackdropOpacity = useRef(new Animated.Value(0)).current;
+
+  // Animation Dropdown Mode (Popup ancré fluide style Web)
+  const [isModeOpen, setIsModeOpen] = useState(false);
+  const modeScale = useRef(new Animated.Value(0.92)).current;
+  const modeOpacity = useRef(new Animated.Value(0)).current;
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -111,7 +122,7 @@ export default function ChatScreen() {
 
   const messages = currentSession?.messages || [];
 
-  // Salutation dynamique & Cartes proactives officielles identiques au Web
+  // Salutation dynamique & Cartes proactives
   const greeting = useMemo(() => {
     return getFumiGreeting('Initié', currentSessionId);
   }, [currentSessionId]);
@@ -119,6 +130,77 @@ export default function ChatScreen() {
   const proactiveCards = useMemo(() => {
     return getFumiProactiveCards();
   }, []);
+
+  // Gestion du Drawer (Animation Gauche -> Droite)
+  const openDrawer = () => {
+    setIsDrawerVisible(true);
+    Animated.parallel([
+      Animated.timing(drawerTranslateX, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(drawerBackdropOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeDrawer = () => {
+    Animated.parallel([
+      Animated.timing(drawerTranslateX, {
+        toValue: -DRAWER_WIDTH,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(drawerBackdropOpacity, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setIsDrawerVisible(false);
+    });
+  };
+
+  // Gestion du menu déroulant Mode (Animation popover fluide)
+  const openModeMenu = () => {
+    setIsModeOpen(true);
+    modeScale.setValue(0.92);
+    modeOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(modeScale, {
+        toValue: 1,
+        friction: 8,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modeOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeModeMenu = () => {
+    Animated.parallel([
+      Animated.timing(modeScale, {
+        toValue: 0.95,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modeOpacity, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setIsModeOpen(false);
+    });
+  };
 
   const initNewSession = () => {
     const newId = `mob_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -132,7 +214,7 @@ export default function ChatScreen() {
     setCurrentSessionId(newId);
     setInput('');
     setAttachedImages([]);
-    setIsDrawerOpen(false);
+    closeDrawer();
   };
 
   const deleteSession = (id: string) => {
@@ -323,7 +405,24 @@ export default function ChatScreen() {
   }, [sessions, searchFilter]);
 
   const modeDisplayLabel = chatMode === 'thinking' ? 'Réfléchir' : chatMode === 'fast' ? 'Rapide' : 'Adaptatif';
-  const modeDisplayIcon = chatMode === 'thinking' ? '🧠' : chatMode === 'fast' ? '⚡' : '✨';
+
+  // Rendu des icônes vectorielles professionnelles pour les badges de cartes
+  const renderCardBadgeIcon = (icon: FumiProactiveCard['badgeIcon']) => {
+    switch (icon) {
+      case 'crown':
+        return <MaterialCommunityIcons name="crown" size={13} color="#834d2e" />;
+      case 'book':
+        return <Feather name="book-open" size={12} color="#834d2e" />;
+      case 'compass':
+        return <Feather name="compass" size={12} color="#834d2e" />;
+      case 'shield':
+        return <Feather name="shield" size={12} color="#834d2e" />;
+      case 'flame':
+        return <Ionicons name="flame" size={13} color="#c2410c" />;
+      default:
+        return <Ionicons name="sparkles" size={12} color="#834d2e" />;
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -332,22 +431,23 @@ export default function ChatScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* ================= EN-TÊTE SUPÉRIEUR EXACT AU PIXEL DU WEB ================= */}
+        {/* ================= EN-TÊTE SUPÉRIEUR SANS DÉBORDEMENT NI CERCLE COUPANT ================= */}
         <View style={styles.header}>
-          {/* Bouton Hamburger */}
+          {/* Bouton Hamburger Vectoriel */}
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => setIsDrawerOpen(true)}
+            onPress={openDrawer}
             accessibilityLabel="Ouvrir le menu"
           >
-            <Text style={styles.headerIconText}>☰</Text>
+            <Feather name="menu" size={19} color="#3a1e12" />
           </TouchableOpacity>
 
-          {/* Logo officiel : Avatar + Lettre + Badge IA (exactement comme le Web) */}
+          {/* Logo officiel : Avatar libre (sans cercle découpant les cheveux) + Lettre + Badge IA */}
           <View style={styles.headerCenter}>
             <Image
               source={require('../../assets/fumi_avatar.png')}
               style={styles.headerAvatar}
+              resizeMode="contain"
             />
             <Image
               source={require('../../assets/fumi_lettre.png')}
@@ -359,13 +459,13 @@ export default function ChatScreen() {
             </View>
           </View>
 
-          {/* Bouton Nouveau Chat (+) */}
+          {/* Bouton Nouveau Chat (+) Vectoriel */}
           <TouchableOpacity
             style={styles.headerButton}
             onPress={initNewSession}
             accessibilityLabel="Nouvelle discussion"
           >
-            <Text style={styles.headerIconText}>＋</Text>
+            <Feather name="plus" size={19} color="#3a1e12" />
           </TouchableOpacity>
         </View>
 
@@ -375,11 +475,12 @@ export default function ChatScreen() {
             contentContainerStyle={styles.welcomeScrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Avatar & Lettre Fumi centrés */}
+            {/* Avatar Fumi 100% libre et transparent (cheveux intacts sans cercle) */}
             <View style={styles.welcomeMascotteContainer}>
               <Image
                 source={require('../../assets/fumi_avatar.png')}
                 style={styles.welcomeAvatar}
+                resizeMode="contain"
               />
               <Image
                 source={require('../../assets/fumi_lettre.png')}
@@ -388,16 +489,22 @@ export default function ChatScreen() {
               />
             </View>
 
-            {/* Titre & Sous-titre avec Google Fonts officielles (Merriweather & Inter) */}
+            {/* Titre & Sous-titre avec la police Google Sans officielle */}
             <Text style={styles.welcomeHeadline}>{greeting.headline}</Text>
             <Text style={styles.welcomeSubline}>{greeting.subline}</Text>
 
-            {/* CARROUSEL DES SUGGESTIONS PROACTIVES (Exactement les mêmes cartes qu'en Web) */}
+            {/* CARROUSEL DES SUGGESTIONS PROACTIVES (Icônes vectorielles professionnelles) */}
             <View style={styles.carouselHeader}>
-              <Text style={styles.carouselHeaderText}>
-                ✨ SUGGESTIONS PROACTIVES & SECRETS...
-              </Text>
-              <Text style={styles.carouselHeaderHint}>Faites défiler →</Text>
+              <View style={styles.carouselHeaderLeft}>
+                <Ionicons name="sparkles" size={13} color="#a26131" />
+                <Text style={styles.carouselHeaderText}>
+                  SUGGESTIONS PROACTIVES & SECRETS...
+                </Text>
+              </View>
+              <View style={styles.carouselHeaderRight}>
+                <Text style={styles.carouselHeaderHint}>Faites défiler</Text>
+                <Feather name="arrow-right" size={11} color="#9e9486" />
+              </View>
             </View>
 
             <ScrollView
@@ -408,16 +515,16 @@ export default function ChatScreen() {
               decelerationRate="fast"
             >
               {proactiveCards.map((card: FumiProactiveCard) => {
-                const iconSymbol = card.badgeIcon === 'crown' ? '👑' : card.badgeIcon === 'book' ? '📚' : card.badgeIcon === 'compass' ? '🧭' : card.badgeIcon === 'shield' ? '🛡️' : '✨';
                 const actionText = card.actionType === 'prompt' && card.promptQuery
                   ? card.actionLabel
-                  : (card.badge.includes('FÊZAN') ? '↗ Interroger le Fâ' : card.badge.includes('ROYAL') ? '💬 Raconter le secret' : card.actionLabel || 'Poser la question ➔');
+                  : (card.badge.includes('FÊZAN') ? 'Interroger le Fâ' : card.badge.includes('ROYAL') ? 'Raconter le secret' : card.actionLabel || 'Poser la question');
 
                 return (
                   <View key={card.id} style={styles.suggestionCard}>
                     <View style={styles.suggestionBadge}>
+                      {renderCardBadgeIcon(card.badgeIcon)}
                       <Text style={styles.suggestionBadgeText}>
-                        {iconSymbol} {card.badge}
+                        {card.badge}
                       </Text>
                     </View>
                     <Text style={styles.suggestionTitle} numberOfLines={2}>
@@ -455,6 +562,7 @@ export default function ChatScreen() {
                     <Image
                       source={require('../../assets/fumi_avatar.png')}
                       style={styles.chatMessageAvatar}
+                      resizeMode="contain"
                     />
                   )}
                   <View
@@ -463,33 +571,30 @@ export default function ChatScreen() {
                       isUser ? styles.userBubble : styles.aiBubble,
                     ]}
                   >
-                    {/* Photos si présentes */}
                     {item.images && item.images.length > 0 && (
                       <View style={styles.messageImagesRow}>
-                        {item.images.map((imgUri, imgIdx) => (
-                          <Image
-                            key={imgIdx}
-                            source={{ uri: imgUri }}
-                            style={styles.messageImageThumb}
-                          />
+                        {item.images.map((uri, idx) => (
+                          <Image key={idx} source={{ uri }} style={styles.messageImageThumb} />
                         ))}
                       </View>
                     )}
-
-                    {/* Texte du message */}
-                    <Text style={isUser ? styles.userMessageText : styles.aiMessageText}>
+                    <Text style={isUser ? styles.userMessageText : styles.aiMessageText} selectable>
                       {item.content}
                     </Text>
 
-                    {/* Barre d'action sur message IA */}
                     {!isUser && (
                       <View style={styles.aiActionRow}>
                         <TouchableOpacity
                           style={styles.aiActionBtn}
                           onPress={() => handleCopyMessage(item.content, item.id)}
                         >
-                          <Text style={styles.aiActionText}>
-                            {copiedMessageId === item.id ? '✓ Copié' : '📋 Copier'}
+                          <Feather
+                            name={copiedMessageId === item.id ? "check" : "copy"}
+                            size={12}
+                            color={copiedMessageId === item.id ? "#16a34a" : "#834d2e"}
+                          />
+                          <Text style={[styles.aiActionText, copiedMessageId === item.id && { color: '#16a34a' }]}>
+                            {copiedMessageId === item.id ? 'Copié' : 'Copier'}
                           </Text>
                         </TouchableOpacity>
 
@@ -497,8 +602,13 @@ export default function ChatScreen() {
                           style={styles.aiActionBtn}
                           onPress={() => handleToggleSpeak(item.content, item.id)}
                         >
-                          <Text style={styles.aiActionText}>
-                            {speakingMessageId === item.id ? '⏹️ Arrêter' : '🔊 Écouter'}
+                          <Feather
+                            name={speakingMessageId === item.id ? "volume-x" : "volume-2"}
+                            size={12}
+                            color={speakingMessageId === item.id ? "#dc2626" : "#834d2e"}
+                          />
+                          <Text style={[styles.aiActionText, speakingMessageId === item.id && { color: '#dc2626' }]}>
+                            {speakingMessageId === item.id ? 'Arrêter' : 'Écouter'}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -510,21 +620,22 @@ export default function ChatScreen() {
           />
         )}
 
-        {/* Indicateur de chargement */}
+        {/* Indicateur de réflexion */}
         {loading && (
           <View style={styles.thinkingContainer}>
             <Image
               source={require('../../assets/fumi_avatar.png')}
               style={styles.thinkingAvatar}
+              resizeMode="contain"
             />
             <ActivityIndicator size="small" color="#543719" />
             <Text style={styles.thinkingText}>
-              {chatMode === 'thinking' ? 'Fumi réfléchit avec sagesse...' : 'Fumi prépare votre réponse...'}
+              {chatMode === 'thinking' ? "Fumi approfondit sa réflexion pas à pas..." : "Fumi formule sa réponse..."}
             </Text>
           </View>
         )}
 
-        {/* ================= CAPSULE DE SAISIE UNIFIÉE EXACTE AU PIXEL DU WEB ================= */}
+        {/* ================= CAPSULE DE SAISIE UNIFIÉE ================= */}
         <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View style={styles.inputCapsule}>
             {/* Photos attachées */}
@@ -537,7 +648,7 @@ export default function ChatScreen() {
                       style={styles.attachedImageRemove}
                       onPress={() => handleRemoveImage(img.id)}
                     >
-                      <Text style={styles.attachedImageRemoveText}>✕</Text>
+                      <Feather name="x" size={10} color="#ffffff" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -560,30 +671,36 @@ export default function ChatScreen() {
 
             {/* Barre inférieure dans la capsule : [+] à gauche, [Mode ▾] et [Mic/Envoyer] à droite */}
             <View style={styles.capsuleBottomRow}>
-              {/* Bouton + pour joindre des photos */}
+              {/* Bouton + vectoriel pour joindre des photos */}
               <TouchableOpacity
                 style={styles.plusButton}
                 onPress={handlePickImages}
                 disabled={attachedImages.length >= 5}
                 accessibilityLabel="Ajouter des photos"
               >
-                <Text style={styles.plusButtonText}>＋</Text>
+                <Feather name="plus" size={18} color="#543719" />
               </TouchableOpacity>
 
               {/* Bloc droit : Sélecteur de mode déroulant + Action */}
               <View style={styles.capsuleRightActions}>
-                {/* Pilule Sélecteur de mode */}
+                {/* Pilule Sélecteur de mode avec icônes vectorielles */}
                 <TouchableOpacity
                   style={styles.modeDropdownPill}
-                  onPress={() => setIsModeModalOpen(true)}
+                  onPress={openModeMenu}
                   accessibilityLabel="Changer le mode de réponse"
                 >
-                  <Text style={styles.modeDropdownText}>
-                    {modeDisplayIcon} {modeDisplayLabel} ▾
-                  </Text>
+                  {chatMode === 'thinking' ? (
+                    <Ionicons name="bulb-outline" size={12} color="#b45309" />
+                  ) : chatMode === 'fast' ? (
+                    <Feather name="zap" size={11} color="#57534e" />
+                  ) : (
+                    <Ionicons name="sparkles" size={11} color="#6b4028" />
+                  )}
+                  <Text style={styles.modeDropdownText}>{modeDisplayLabel}</Text>
+                  <Feather name="chevron-down" size={11} color="#6b4028" />
                 </TouchableOpacity>
 
-                {/* Bouton Envoyer ou Micro */}
+                {/* Bouton Envoyer ou Micro Vectoriel */}
                 {(input.trim() || attachedImages.length > 0) ? (
                   <TouchableOpacity
                     style={styles.sendCircleButton}
@@ -591,7 +708,7 @@ export default function ChatScreen() {
                     disabled={loading}
                     accessibilityLabel="Envoyer"
                   >
-                    <Text style={styles.sendCircleIcon}>↑</Text>
+                    <Feather name="arrow-up" size={17} color="#ffffff" />
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
@@ -599,7 +716,7 @@ export default function ChatScreen() {
                     onPress={() => Alert.alert("Entrée vocale", "Dictez votre question ou tapez directement dans le champ.")}
                     accessibilityLabel="Micro"
                   >
-                    <Text style={styles.micCircleIcon}>🎙️</Text>
+                    <Feather name="mic" size={15} color="#543719" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -611,89 +728,103 @@ export default function ChatScreen() {
           </Text>
         </View>
 
-        {/* ================= MODAL SÉLECTION DE MODE DE RÉPONSE ================= */}
-        <Modal
-          visible={isModeModalOpen}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setIsModeModalOpen(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setIsModeModalOpen(false)}
-          >
-            <View style={styles.modeModalContent}>
+        {/* ================= POPOVER ANCRÉ DU MODE DE RÉPONSE (Animation fluide comme sur le web) ================= */}
+        {isModeOpen && (
+          <View style={[StyleSheet.absoluteFill, styles.popoverOverlay]} pointerEvents="box-none">
+            <TouchableWithoutFeedback onPress={closeModeMenu}>
+              <View style={StyleSheet.absoluteFill} />
+            </TouchableWithoutFeedback>
+
+            <Animated.View
+              style={[
+                styles.modePopoverCard,
+                {
+                  bottom: Math.max(insets.bottom, 12) + 68,
+                  opacity: modeOpacity,
+                  transform: [{ scale: modeScale }],
+                },
+              ]}
+            >
               <Text style={styles.modeModalTitle}>MODE DE RÉPONSE</Text>
 
-              {/* Adaptatif */}
+              {/* Option 1 : Adaptatif */}
               <TouchableOpacity
                 style={[styles.modeModalOption, chatMode === 'adaptive' && styles.modeModalOptionActive]}
                 onPress={() => {
                   setChatMode('adaptive');
-                  setIsModeModalOpen(false);
+                  closeModeMenu();
                 }}
               >
-                <Text style={styles.modeModalOptionIcon}>✨</Text>
+                <View style={[styles.modeIconCircle, chatMode === 'adaptive' && styles.modeIconCircleActive]}>
+                  <Ionicons name="sparkles" size={14} color={chatMode === 'adaptive' ? '#6b4028' : '#78716c'} />
+                </View>
                 <View style={styles.modeModalOptionTextCol}>
                   <Text style={styles.modeModalOptionName}>Adaptatif (Défaut)</Text>
                   <Text style={styles.modeModalOptionDesc}>S'adapte naturellement selon la complexité de chaque question.</Text>
                 </View>
               </TouchableOpacity>
 
-              {/* Rapide */}
+              {/* Option 2 : Rapide */}
               <TouchableOpacity
                 style={[styles.modeModalOption, chatMode === 'fast' && styles.modeModalOptionActive]}
                 onPress={() => {
                   setChatMode('fast');
-                  setIsModeModalOpen(false);
+                  closeModeMenu();
                 }}
               >
-                <Text style={styles.modeModalOptionIcon}>⚡</Text>
+                <View style={[styles.modeIconCircle, chatMode === 'fast' && styles.modeIconCircleActive]}>
+                  <Feather name="zap" size={14} color={chatMode === 'fast' ? '#3a1e12' : '#78716c'} />
+                </View>
                 <View style={styles.modeModalOptionTextCol}>
                   <Text style={styles.modeModalOptionName}>Rapide</Text>
                   <Text style={styles.modeModalOptionDesc}>Réponses directes et instantanées pour le quotidien.</Text>
                 </View>
               </TouchableOpacity>
 
-              {/* Réfléchir */}
+              {/* Option 3 : Réfléchir */}
               <TouchableOpacity
                 style={[styles.modeModalOption, chatMode === 'thinking' && styles.modeModalOptionActive]}
                 onPress={() => {
                   setChatMode('thinking');
-                  setIsModeModalOpen(false);
+                  closeModeMenu();
                 }}
               >
-                <Text style={styles.modeModalOptionIcon}>🧠</Text>
+                <View style={[styles.modeIconCircle, chatMode === 'thinking' && styles.modeIconCircleActive]}>
+                  <Ionicons name="bulb-outline" size={14} color={chatMode === 'thinking' ? '#b45309' : '#78716c'} />
+                </View>
                 <View style={styles.modeModalOptionTextCol}>
                   <Text style={styles.modeModalOptionName}>Réfléchir</Text>
                   <Text style={styles.modeModalOptionDesc}>Analyse méthodique et raisonnement approfondi pas à pas.</Text>
                 </View>
               </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
+            </Animated.View>
+          </View>
+        )}
 
-        {/* ================= MODAL TIROIR D'HISTORIQUE (DRAWER) ================= */}
-        <Modal
-          visible={isDrawerOpen}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setIsDrawerOpen(false)}
-        >
-          <View style={styles.drawerOverlay}>
-            <TouchableOpacity
-              style={styles.drawerBackdrop}
-              activeOpacity={1}
-              onPress={() => setIsDrawerOpen(false)}
-            />
-            <View style={styles.drawerSheet}>
-              {/* En-tête Tiroir */}
+        {/* ================= DRAWER ANIMÉ DE GAUCHE À DROITE (Comme sur Fa-Vodun) ================= */}
+        {isDrawerVisible && (
+          <View style={[StyleSheet.absoluteFill, styles.drawerOverlay]} pointerEvents="box-none">
+            {/* Backdrop avec opacité animée */}
+            <TouchableWithoutFeedback onPress={closeDrawer}>
+              <Animated.View style={[styles.drawerBackdrop, { opacity: drawerBackdropOpacity }]} />
+            </TouchableWithoutFeedback>
+
+            {/* Volet latéral coulissant depuis la gauche */}
+            <Animated.View
+              style={[
+                styles.drawerSheet,
+                {
+                  transform: [{ translateX: drawerTranslateX }],
+                },
+              ]}
+            >
+              {/* En-tête Tiroir avec Avatar libre sans cercle */}
               <View style={styles.drawerHeader}>
                 <View style={styles.drawerBrand}>
                   <Image
                     source={require('../../assets/fumi_avatar.png')}
                     style={styles.drawerAvatar}
+                    resizeMode="contain"
                   />
                   <View>
                     <Text style={styles.drawerTitle}>Fumi AI</Text>
@@ -702,22 +833,25 @@ export default function ChatScreen() {
                 </View>
                 <TouchableOpacity
                   style={styles.drawerCloseButton}
-                  onPress={() => setIsDrawerOpen(false)}
+                  onPress={closeDrawer}
+                  accessibilityLabel="Fermer le menu"
                 >
-                  <Text style={styles.drawerCloseText}>✕</Text>
+                  <Feather name="x" size={20} color="#6b4028" />
                 </TouchableOpacity>
               </View>
 
-              {/* Bouton Nouvelle Discussion */}
+              {/* Bouton Nouvelle Discussion Vectoriel */}
               <TouchableOpacity
                 style={styles.drawerNewButton}
                 onPress={initNewSession}
               >
-                <Text style={styles.drawerNewButtonText}>✏️ Nouvelle discussion</Text>
+                <Feather name="plus" size={15} color="#3a1e12" />
+                <Text style={styles.drawerNewButtonText}>Nouvelle discussion</Text>
               </TouchableOpacity>
 
               {/* Champ de recherche */}
               <View style={styles.drawerSearchBox}>
+                <Feather name="search" size={14} color="#9e9486" style={{ marginRight: 6 }} />
                 <TextInput
                   style={styles.drawerSearchInput}
                   value={searchFilter}
@@ -728,7 +862,7 @@ export default function ChatScreen() {
               </View>
 
               {/* Liste des discussions */}
-              <ScrollView style={styles.drawerList}>
+              <ScrollView style={styles.drawerList} showsVerticalScrollIndicator={false}>
                 {filteredSessions.map((s) => {
                   const isActive = s.id === currentSessionId;
                   return (
@@ -740,29 +874,30 @@ export default function ChatScreen() {
                         style={styles.drawerItemContent}
                         onPress={() => {
                           setCurrentSessionId(s.id);
-                          setIsDrawerOpen(false);
+                          closeDrawer();
                         }}
                       >
                         <Text
                           style={[styles.drawerItemTitle, isActive && styles.drawerItemTitleActive]}
                           numberOfLines={1}
                         >
-                          {s.title || 'Discussion sans titre'}
+                          {s.title}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.drawerItemDelete}
                         onPress={() => deleteSession(s.id)}
+                        accessibilityLabel="Supprimer la discussion"
                       >
-                        <Text style={styles.drawerDeleteText}>🗑️</Text>
+                        <Feather name="trash-2" size={14} color="#dc2626" />
                       </TouchableOpacity>
                     </View>
                   );
                 })}
               </ScrollView>
-            </View>
+            </Animated.View>
           </View>
-        </Modal>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -799,20 +934,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerIconText: {
-    fontSize: 18,
-    color: '#3a1e12',
-    fontWeight: 'bold',
-  },
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   headerAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
   },
   headerLettre: {
     height: 18,
@@ -828,7 +957,7 @@ const styles = StyleSheet.create({
   },
   iaBadgeText: {
     fontSize: 9.5,
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'GoogleSans-Bold',
     color: '#6b4028',
   },
 
@@ -845,9 +974,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   welcomeAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 76,
+    height: 76,
   },
   welcomeLettre: {
     height: 24,
@@ -855,15 +983,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   welcomeHeadline: {
-    fontFamily: 'Merriweather-Bold',
-    fontSize: 21,
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 22,
     color: '#3a1e12',
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 28,
   },
   welcomeSubline: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
     color: '#6b4028',
     textAlign: 'center',
@@ -882,14 +1010,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 4,
   },
+  carouselHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   carouselHeaderText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'GoogleSans-Bold',
     fontSize: 10,
     color: '#a26131',
     letterSpacing: 0.8,
   },
+  carouselHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
   carouselHeaderHint: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'GoogleSans-Medium',
     fontSize: 10,
     color: '#9e9486',
   },
@@ -914,22 +1052,25 @@ const styles = StyleSheet.create({
   },
   suggestionBadge: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: '#fcfaf5',
     borderWidth: 1,
     borderColor: '#e5cf9e',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: 10,
     marginBottom: 8,
   },
   suggestionBadgeText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'GoogleSans-Bold',
     fontSize: 9.5,
     color: '#834d2e',
     textTransform: 'uppercase',
   },
   suggestionTitle: {
-    fontFamily: 'Merriweather-Bold',
+    fontFamily: 'GoogleSans-Bold',
     fontSize: 13.5,
     color: '#292524',
     lineHeight: 19,
@@ -944,7 +1085,7 @@ const styles = StyleSheet.create({
   },
   suggestionButtonText: {
     color: '#ffffff',
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'GoogleSans-Bold',
     fontSize: 11,
     letterSpacing: 0.2,
   },
@@ -967,9 +1108,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   chatMessageAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
     marginTop: 4,
   },
   messageBubble: {
@@ -994,13 +1134,13 @@ const styles = StyleSheet.create({
   },
   userMessageText: {
     color: '#ffffff',
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'GoogleSans-Regular',
     fontSize: 15,
     lineHeight: 22,
   },
   aiMessageText: {
     color: '#292524',
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'GoogleSans-Regular',
     fontSize: 15,
     lineHeight: 22,
   },
@@ -1017,20 +1157,23 @@ const styles = StyleSheet.create({
   },
   aiActionRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f8f4e6',
   },
   aiActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: '#f8f4e6',
   },
   aiActionText: {
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'GoogleSans-Medium',
     fontSize: 11,
     color: '#834d2e',
   },
@@ -1046,15 +1189,14 @@ const styles = StyleSheet.create({
   thinkingAvatar: {
     width: 24,
     height: 24,
-    borderRadius: 12,
   },
   thinkingText: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'GoogleSans-Medium',
     color: '#834d2e',
     fontSize: 12,
   },
 
-  /* CAPSULE DE SAISIE UNIFIÉE (PIXEL PERFECT WEB) */
+  /* CAPSULE DE SAISIE UNIFIÉE */
   inputWrapper: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -1097,13 +1239,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  attachedImageRemoveText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
   textInput: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'GoogleSans-Regular',
     fontSize: 15.5,
     color: '#292524',
     maxHeight: 120,
@@ -1122,14 +1259,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#f8f4e6',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  plusButtonText: {
-    fontSize: 22,
-    color: '#543719',
-    fontWeight: '400',
-    lineHeight: 24,
   },
   capsuleRightActions: {
     flexDirection: 'row',
@@ -1139,6 +1271,7 @@ const styles = StyleSheet.create({
   modeDropdownPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     backgroundColor: '#fcfaf5',
     borderWidth: 1,
     borderColor: '#e5cf9e',
@@ -1147,7 +1280,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   modeDropdownText: {
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'GoogleSans-Medium',
     fontSize: 11,
     color: '#6b4028',
   },
@@ -1159,60 +1292,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendCircleIcon: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
   micCircleButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#f8f4e6',
+    borderWidth: 1,
+    borderColor: '#e5cf9e',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  micCircleIcon: {
-    fontSize: 18,
-  },
   disclaimerText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'GoogleSans-Regular',
     fontSize: 10.5,
     color: '#a89f91',
     textAlign: 'center',
     marginTop: 6,
   },
 
-  /* MODAL MODE DE RÉPONSE */
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-    padding: 16,
+  /* POPOVER MODE ANCRÉ AU-DESSUS DE LA CAPSULE */
+  popoverOverlay: {
+    zIndex: 900,
   },
-  modeModalContent: {
+  modePopoverCard: {
+    position: 'absolute',
+    right: 16,
+    width: Math.min(SCREEN_WIDTH * 0.76, 280),
     backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e5cf9e',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.16,
     shadowRadius: 12,
     elevation: 8,
   },
   modeModalTitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 10.5,
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 10,
     color: '#a89f91',
     letterSpacing: 0.8,
-    marginBottom: 12,
+    marginBottom: 10,
+    paddingHorizontal: 4,
   },
   modeModalOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 6,
+    gap: 10,
+    padding: 10,
+    borderRadius: 14,
+    marginBottom: 4,
     backgroundColor: '#fcfaf5',
   },
   modeModalOptionActive: {
@@ -1220,40 +1351,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dab372',
   },
-  modeModalOptionIcon: {
-    fontSize: 20,
+  modeIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#f0e6cb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeIconCircleActive: {
+    backgroundColor: '#dab372',
   },
   modeModalOptionTextCol: {
     flex: 1,
   },
   modeModalOptionName: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 13,
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 12.5,
     color: '#3a1e12',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   modeModalOptionDesc: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 11,
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 10.5,
     color: '#6b4028',
-    lineHeight: 15,
+    lineHeight: 14,
   },
 
-  /* MODAL DRAWER D'HISTORIQUE */
+  /* DRAWER D'HISTORIQUE (COULISSANT DEPUIS LA GAUCHE) */
   drawerOverlay: {
-    flex: 1,
-    flexDirection: 'row',
+    zIndex: 1000,
   },
   drawerBackdrop: {
-    position: 'absolute',
-    inset: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   drawerSheet: {
-    width: SCREEN_WIDTH * 0.82,
-    maxWidth: 320,
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: DRAWER_WIDTH,
     backgroundColor: '#ffffff',
-    height: '100%',
     padding: 18,
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
@@ -1276,43 +1415,43 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   drawerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
   },
   drawerTitle: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
     color: '#3a1e12',
   },
   drawerSubtitle: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'GoogleSans-Medium',
     fontSize: 10,
     color: '#834d2e',
   },
   drawerCloseButton: {
     padding: 6,
   },
-  drawerCloseText: {
-    fontSize: 18,
-    color: '#6b4028',
-  },
   drawerNewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: '#f8f4e6',
     borderWidth: 1,
     borderColor: '#f0e6cb',
     borderRadius: 16,
-    paddingVertical: 12,
+    paddingVertical: 11,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
   drawerNewButtonText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'GoogleSans-Bold',
     fontSize: 13,
     color: '#3a1e12',
-    textAlign: 'center',
   },
   drawerSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fcfaf5',
     borderWidth: 1,
     borderColor: '#e5cf9e',
@@ -1322,7 +1461,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   drawerSearchInput: {
-    fontFamily: 'Inter-Regular',
+    flex: 1,
+    fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
     color: '#292524',
     padding: 0,
@@ -1350,18 +1490,15 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   drawerItemTitle: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
     color: '#292524',
   },
   drawerItemTitleActive: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'GoogleSans-Bold',
     color: '#3a1e12',
   },
   drawerItemDelete: {
     padding: 4,
-  },
-  drawerDeleteText: {
-    fontSize: 13,
   },
 });

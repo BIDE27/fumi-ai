@@ -1,17 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Merriweather } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const merriweather = Merriweather({
-  variable: "--font-merriweather",
-  weight: ["300", "400", "700", "900"],
-  subsets: ["latin"],
+const googleSans = localFont({
+  src: [
+    {
+      path: "../../public/fonts/GoogleSans-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/GoogleSans-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/GoogleSans-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-google-sans",
   display: "swap",
 });
 
@@ -38,10 +47,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${inter.variable} ${merriweather.variable}`}>
+    <html lang="fr" className={googleSans.variable}>
       <body className="font-sans antialiased bg-[#fcfaf5] text-[#292524] min-h-[100dvh]">
         {children}
       </body>
     </html>
   );
 }
+

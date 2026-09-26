@@ -803,6 +803,7 @@ export default function ChatScreen() {
               placeholderTextColor="#9e9486"
               multiline
               onFocus={() => {
+                setIsKeyboardVisible(true);
                 if (messages.length > 0) {
                   setTimeout(() => {
                     flatListRef.current?.scrollToEnd({ animated: true });

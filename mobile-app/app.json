@@ -16,7 +16,7 @@
         "backgroundColor": "#0f0d0b"
       },
       "package": "com.azavatech.fumi",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-asset",

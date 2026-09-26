@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/fumi_avatar_square.png",
         "backgroundColor": "#0f0d0b"
       },
-      "package": "com.azavatech.fumi"
+      "package": "com.azavatech.fumi",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "plugins": [
       "expo-asset",

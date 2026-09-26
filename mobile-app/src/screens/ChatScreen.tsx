@@ -16,6 +16,8 @@ import {
   Alert,
   Dimensions,
   Animated,
+  Keyboard,
+  KeyboardEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -86,6 +88,56 @@ export default function ChatScreen() {
   const [isModeOpen, setIsModeOpen] = useState(false);
   const modeScale = useRef(new Animated.Value(0.92)).current;
   const modeOpacity = useRef(new Animated.Value(0)).current;
+
+  // Animation et élévation pour que le champ de saisie survole le clavier
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const keyboardHeightAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const onKeyboardShow = (e: any) => {
+      const height = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(height);
+      setIsKeyboardVisible(true);
+      Animated.timing(keyboardHeightAnim, {
+        toValue: height,
+        duration: Platform.OS === 'ios' ? (e?.duration || 250) : 180,
+        useNativeDriver: false,
+      }).start();
+    };
+
+    const onKeyboardHide = (e?: any) => {
+      setKeyboardHeight(0);
+      setIsKeyboardVisible(false);
+      Animated.timing(keyboardHeightAnim, {
+        toValue: 0,
+        duration: Platform.OS === 'ios' ? (e?.duration || 250) : 180,
+        useNativeDriver: false,
+      }).start();
+    };
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, onKeyboardShow);
+    const hideSub = Keyboard.addListener(hideEvent, onKeyboardHide);
+
+    let willShowSub: any;
+    let willHideSub: any;
+    if (Platform.OS === 'android') {
+      try {
+        willShowSub = Keyboard.addListener('keyboardWillShow', onKeyboardShow);
+        willHideSub = Keyboard.addListener('keyboardWillHide', onKeyboardHide);
+      } catch (_) {}
+    }
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+      willShowSub?.remove();
+      willHideSub?.remove();
+    };
+  }, []);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -184,6 +236,7 @@ export default function ChatScreen() {
 
   // Gestion du menu déroulant Mode (Animation popover fluide)
   const openModeMenu = () => {
+    Keyboard.dismiss();
     setIsModeOpen(true);
     modeScale.setValue(0.92);
     modeOpacity.setValue(0);
@@ -540,6 +593,8 @@ export default function ChatScreen() {
           <ScrollView
             contentContainerStyle={styles.welcomeScrollContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
             {/* Avatar Fumi libre et transparent (cheveux intacts) */}
             <View style={styles.welcomeMascotteContainer}>
@@ -614,6 +669,8 @@ export default function ChatScreen() {
             data={messages}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.messageList}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             renderItem={({ item }) => {
               const isUser = item.role === 'user';
@@ -701,9 +758,21 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* ================= CAPSULE DE SAISIE UNIFIÉE ================= */}
-        <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-          <View style={styles.inputCapsule}>
+        {/* ================= CAPSULE DE SAISIE UNIFIÉE (SURVOLE LE CLAVIER) ================= */}
+        <Animated.View
+          style={[
+            styles.inputWrapper,
+            {
+              paddingBottom: Platform.OS === 'android'
+                ? keyboardHeightAnim.interpolate({
+                    inputRange: [0, 600],
+                    outputRange: [Math.max(insets.bottom, 12), 600 + 8],
+                  })
+                : (isKeyboardVisible ? 8 : Math.max(insets.bottom, 12)),
+            },
+          ]}
+        >
+          <View style={[styles.inputCapsule, isKeyboardVisible && styles.inputCapsuleFocused]}>
             {/* Photos attachées */}
             {attachedImages.length > 0 && (
               <ScrollView horizontal style={styles.attachedImagesBar} showsHorizontalScrollIndicator={false}>
@@ -733,6 +802,13 @@ export default function ChatScreen() {
               }
               placeholderTextColor="#9e9486"
               multiline
+              onFocus={() => {
+                if (messages.length > 0) {
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToEnd({ animated: true });
+                  }, 120);
+                }
+              }}
             />
 
             {/* Barre inférieure dans la capsule */}
@@ -789,10 +865,13 @@ export default function ChatScreen() {
             </View>
           </View>
 
-          <Text style={styles.disclaimerText}>
-            Fumi est une IA et peut se tromper
-          </Text>
-        </View>
+          {/* Le disclaimer disparaît discrètement pendant la saisie pour laisser le champ survoler le clavier avec netteté */}
+          {!isKeyboardVisible && (
+            <Text style={styles.disclaimerText}>
+              Fumi est une IA et peut se tromper
+            </Text>
+          )}
+        </Animated.View>
 
         {/* ================= POPOVER ANCRÉ DU MODE DE RÉPONSE ================= */}
         {isModeOpen && (
@@ -805,7 +884,9 @@ export default function ChatScreen() {
               style={[
                 styles.modePopoverCard,
                 {
-                  bottom: Math.max(insets.bottom, 12) + 68,
+                  bottom: (Platform.OS === 'android' && isKeyboardVisible
+                    ? keyboardHeight + 72
+                    : Math.max(insets.bottom, 12) + 68),
                   opacity: modeOpacity,
                   transform: [{ scale: modeScale }],
                 },
@@ -1433,6 +1514,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+  },
+  inputCapsuleFocused: {
+    borderColor: '#dab372',
+    borderWidth: 1.5,
+    shadowColor: '#543719',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 6,
   },
   attachedImagesBar: {
     flexDirection: 'row',

@@ -591,6 +591,7 @@ export default function ChatScreen() {
         {/* ================= CORPS DU CHAT OU ÉTAT D'ACCUEIL ================= */}
         {messages.length === 0 ? (
           <ScrollView
+            style={{ flex: 1 }}
             contentContainerStyle={styles.welcomeScrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -759,16 +760,11 @@ export default function ChatScreen() {
         )}
 
         {/* ================= CAPSULE DE SAISIE UNIFIÉE (SURVOLE LE CLAVIER) ================= */}
-        <Animated.View
+        <View
           style={[
             styles.inputWrapper,
             {
-              paddingBottom: Platform.OS === 'android'
-                ? keyboardHeightAnim.interpolate({
-                    inputRange: [0, 600],
-                    outputRange: [Math.max(insets.bottom, 12), 600 + 8],
-                  })
-                : (isKeyboardVisible ? 8 : Math.max(insets.bottom, 12)),
+              paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 12),
             },
           ]}
         >
@@ -872,7 +868,7 @@ export default function ChatScreen() {
               Fumi est une IA et peut se tromper
             </Text>
           )}
-        </Animated.View>
+        </View>
 
         {/* ================= POPOVER ANCRÉ DU MODE DE RÉPONSE ================= */}
         {isModeOpen && (
@@ -885,9 +881,7 @@ export default function ChatScreen() {
               style={[
                 styles.modePopoverCard,
                 {
-                  bottom: (Platform.OS === 'android' && isKeyboardVisible
-                    ? keyboardHeight + 72
-                    : Math.max(insets.bottom, 12) + 68),
+                  bottom: isKeyboardVisible ? 76 : Math.max(insets.bottom, 12) + 68,
                   opacity: modeOpacity,
                   transform: [{ scale: modeScale }],
                 },
